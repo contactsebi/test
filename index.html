@@ -16,7 +16,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#7fc0e8">
-<title>Sommerwind 3D — Flug über die Inseln</title>
+<title>Sommerwind 3D · World Visual Final Pass 8</title>
 <meta name="author" content="Sebastian Zwick">
 <meta name="description" content="Sommerwind 3D — ein Flugboot über einer endlosen Inselwelt. Von Sebastian Zwick.">
 <style>
@@ -84772,7 +84772,9 @@ const SEA_FLOOR=-70;
    Erst dadurch bekommt das Meer Maßstab — ein Gebirge am Horizont und
    davor eine Kette kleiner Felsen. */
 const CELL_A=12000, CELL_B=3600;
-const STREAM_R=12500, DROP_R=15800;
+/* WORLD TARGET: Desktop haelt eine weitere Inselstaffel im Horizontbereich.
+   Mobile bleibt beim bisherigen Budget. */
+const STREAM_R=IS_MOBILE?12500:17500, DROP_R=IS_MOBILE?15800:21800;
 
 function regionAt(x,z){
   /* Die drei alten Klimafelder bleiben erhalten. Zwei sehr niederfrequente,
@@ -84926,7 +84928,9 @@ function makeIsland(ci,cj,big){
   const cx=(ci+.5+(h1-.5)*(big?.42:.66))*CE, cz=(cj+.5+(h2-.5)*(big?.42:.66))*CE;
   const rg=regionAt(cx,cz);
   const rp=regionProfileAt(cx,cz,rg);
-  const p=big ? .30+rg.dens*.55 : .10+rg.dens*.62;
+  /* WORLD TARGET: etwas reichere Staffelung aus kleinen Eilanden im
+     Mittel-/Hintergrund; die grossen Landmassen bleiben unveraendert selten. */
+  const p=big ? .30+rg.dens*.55 : .22+rg.dens*.70;
   const primaryCell=big&&provincePrimaryCell(ci,cj).ci===ci&&provincePrimaryCell(ci,cj).cj===cj;
   /* Pro 48-km-Provinz existiert garantiert genau ein grosser Anker. Zuvor
      konnte der gewaehlte Landmark-Slot an der Dichtepruefung scheitern und
@@ -84946,7 +84950,7 @@ function makeIsland(ci,cj,big){
     else if(t<.36){ kind='alps';  prof=.74; hgt*=1.25; }
     else if(t<.55){ kind='ridge'; prof=.90; ax=1.5+h1*.7; az=.48+h2*.22; rot=h7*Math.PI; }
     else if(t<.75){ kind='cliff'; prof=.70; }
-    else          { kind='pines'; prof=1.15; hgt*=.7; }
+    else          { kind='pines'; prof=1.08; hgt*=1.02; }
   }else{
     r  =280+h4*h4*900;
     hgt=(28+h5*h5*250)*(.5+rg.relief*1.1);
@@ -84962,6 +84966,13 @@ function makeIsland(ci,cj,big){
     else if(t<.62){ kind='pines'; prof=1.30; }
     else if(t<.78){ kind='cliff'; prof=.76; }
   }
+  if(big&&kind!=='volcano'){
+    /* FINAL WORLD PASS: every large Mediterranean landmass must carry a
+       readable mountain/rock silhouette. The old pines/cliff floor still
+       allowed broad green pancakes in normal gameplay views. */
+    const scenicFloor=kind==='alps'?760:(kind==='ridge'?680:(kind==='cliff'?620:600));
+    hgt=Math.max(hgt,scenicFloor*(.94+rg.relief*.22));
+  }
   hgt=clamp(hgt,24,big?1520:340);
 
   const o={ci,cj,cx,cz,r,h:hgt,prof,kind,ax,az,rot,ring,crater,big:big?1:0,
@@ -84973,21 +84984,34 @@ function makeIsland(ci,cj,big){
   o.tp=makeTerrainPlan(o,rg,S);
   o.rot=o.tp.axis;
   if(!o.ax){
-    if(kind==='alps'){o.ax=1.22;o.az=.90;}
-    else if(kind==='cliff'){o.ax=1.13;o.az=.94;}
-    else if(kind==='pines'){o.ax=1.10;o.az=.96;}
-    else if(kind==='plain'){o.ax=1.08;o.az=.95;}
-    else if(kind==='peak'){o.ax=1.05;o.az=.94;}
-    else if(kind==='cone'){o.ax=1.02;o.az=.98;}
-    else if(kind==='volcano'){o.ax=1.04;o.az=.96;}
+    /* WORLD TARGET: breitere, klarere Insel-Silhouetten wie gemalte
+       Landschaftskulissen. Die Hoehenlogik bleibt identisch; nur die
+       horizontale Grossform wird etwas komponierter. */
+    if(kind==='alps'){o.ax=1.30;o.az=.87;}
+    else if(kind==='cliff'){o.ax=1.24;o.az=.90;}
+    else if(kind==='pines'){o.ax=1.19;o.az=.92;}
+    else if(kind==='plain'){o.ax=1.16;o.az=.93;}
+    else if(kind==='peak'){o.ax=1.10;o.az=.91;}
+    else if(kind==='cone'){o.ax=1.04;o.az=.97;}
+    else if(kind==='volcano'){o.ax=1.06;o.az=.94;}
+  }
+  /* FINAL COMPOSITION: procedural ridge islands used to become razor-thin
+     walls. Broadening only the large ridge family gives the reference-like
+     Mediterranean mountain mass while preserving its dominant crest. */
+  if(big&&kind==='ridge'){
+    o.ax=1.40+h1*.24;
+    o.az=.80+h2*.14;
   }
   const stature=o.tp.primary?1.16:(o.tp.secondary?1.04:(o.tp.quiet ? .90 : 1));
   o.h=clamp(o.h*stature,24,big?1520:340);
   const f=h7;
   if(big){
-    o.village=f<.62 && kind!=='volcano';
-    o.village2=f<.18;
-    o.lighthouse=f>=.42&&f<.62;
+    /* WORLD TARGET: bewohnte Grossinseln sind im Referenzbild ein klarer
+       Bestandteil der Landschaft. Mehr Inseln tragen deshalb kleine, kompakte
+       Siedlungen; die Topografie-/Runway-Pruefungen bleiben unveraendert. */
+    o.village=f<.82 && kind!=='volcano';
+    o.village2=f<.28;
+    o.lighthouse=f>=.36&&f<.68;
     o.ruin=f>=.20&&f<.40;
     o.mill=f>=.30&&f<.52;
     o.fort=f>=.55&&f<.78 && hgt>260;
@@ -85250,14 +85274,14 @@ function islandH(is,x,z){
     const shelf=smoothstep(-.44,.16,v*tp.side);
     const shoulder=ellipseField(u,v,-tp.plateauX*.45,-tp.plateauZ*.25,.78,.58);
     const terrace=.5+.5*smoothstep(.34,.66,plateau);
-    macro=.082*Math.pow(fs,1.32)+.53*plateau*(.40+.60*shelf)*terrace
-          +.18*shoulder+.07*sec1+.045*sec2-.08*valley;
+    macro=.108*Math.pow(fs,1.24)+.71*plateau*(.40+.60*shelf)*terrace
+          +.26*shoulder+.11*sec1+.075*sec2-.08*valley;
   }else if(is.kind==='pines'){
     const h1=ellipseField(u,v,tp.p1,tp.side*.16,.42,.34);
     const h2=ellipseField(u,v,tp.p2,-tp.side*.20,.48,.38);
     const h3=ellipseField(u,v,tp.p3,tp.side*.44,.36,.30);
-    macro=.100*Math.pow(fs,1.35)+.41*h1+.30*h2+.21*h3+.08*spur1
-          +.075*sec1+.055*sec2+.035*shoulder-.09*valley;
+    macro=.138*Math.pow(fs,1.27)+.58*h1+.44*h2+.32*h3+.12*spur1
+          +.11*sec1+.080*sec2+.055*shoulder-.085*valley;
   }else if(is.kind==='atoll'){
     macro=Math.pow(fs,1.05)*(.88+.07*Math.cos(ang*2+tp.coastA));
   }else if(is.kind==='cone'){
@@ -85272,6 +85296,17 @@ function islandH(is,x,z){
     const h2=ellipseField(u,v,tp.p2,-tp.side*.24,.58,.44);
     macro=.085*Math.pow(fs,1.45)+.34*h1+.25*h2-.07*valley;
   }
+  if(is.big&&is.kind!=='volcano'){
+    /* A broad dominant mountain plus one shoulder. This is intentionally
+       analytic world geometry, not shader detail: it makes the island read
+       like a painted background silhouette from 1-6 km away. */
+    const hero=ellipseField(u,v,-.10,-tp.side*.11,.52,.43);
+    const heroShoulder=ellipseField(u,v,.18,tp.side*.12,.62,.48);
+    const heroSpur=capsuleField(u,v,-.10,-tp.side*.08,.48,tp.side*.34,.14);
+    const ha=is.kind==='pines'?.52:(is.kind==='cliff'?.44:(is.kind==='ridge'?.28:.24));
+    const heroAdd=ha*hero+.16*heroShoulder+.11*heroSpur;
+    macro+=heroAdd*(1-clamp(macro/1.04,0,1));
+  }
   macro=clamp(macro,0,1.04);
   let hh=is.h*macro*coast;
 
@@ -85282,7 +85317,10 @@ function islandH(is,x,z){
   if(is.kind==='cliff')detail*=1-.62*plateau;
   else detail*=1-.30*main;
   if(is.ring)detail*=.24;
-  const cap=is.ring?2.4:(is.big?Math.min(40,is.h*.055):Math.min(11,is.h*.070));
+  /* WORLD TARGET: Grossformen vor Mikro-Noise. Die Referenz lebt von
+     breiten, lesbaren Haengen und Felswaenden; kleine Hoehenstoerungen duerfen
+     diese Silhouette nicht zerfasern. */
+  const cap=is.ring?2.0:(is.big?Math.min(28,is.h*.040):Math.min(8.5,is.h*.052));
   const n0=fbm2(x*.0011+is.seed*7,z*.0011+3,2)*2-1;
   const n1=fbm2(x*.0017+is.seed*3,z*.0017,2)*2-1;
   const n2=fbm2(x*.0078,z*.0078,2)*2-1;
@@ -85807,6 +85845,11 @@ function applyTime(){
   hemi.groundColor.lerpColors(a._hg,b._hg,k);
   hemi.intensity=lerp(a.hi,b.hi,k);
   amb.intensity=lerp(a.amb,b.amb,k);
+  /* WORLD TARGET final art-direction: scene lighting only. Sky/water colors and all shaders remain untouched. */
+  const artDayLight=smoothstep(-.04,.30,sunDir.y);
+  sunLight.intensity*=lerp(1.0,1.78,artDayLight);
+  hemi.intensity*=lerp(1.0,2.25,artDayLight);
+  amb.intensity*=lerp(1.0,2.15,artDayLight);
   C.zen.lerpColors(a._zen,b._zen,k);   C.mid.lerpColors(a._mid,b._mid,k);
   C.hor.lerpColors(a._hor,b._hor,k);   C.sun.lerpColors(a._sun,b._sun,k);
   C.fog.lerpColors(a._fog,b._fog,k);   C.deep.lerpColors(a._deep,b._deep,k);
@@ -87226,16 +87269,22 @@ function buildTerrainDetailAtlas(){
 const terrainDetailAtlas=buildTerrainDetailAtlas();
 
 const landMat=new THREE.MeshLambertMaterial({vertexColors:true});
+landMat.color.setRGB(1.30,1.32,1.18);
 /* Das feine Netz über der Heimatbucht liegt am Rand deckungsgleich auf dem
    groben. Damit dort nichts flimmert, wird es minimal zur Kamera gezogen. */
 const bayLandMat=new THREE.MeshLambertMaterial({vertexColors:true,
   polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4});
+bayLandMat.color.setRGB(1.30,1.32,1.18);
 const propMat=new THREE.MeshLambertMaterial({vertexColors:true});
+/* Bright painterly limestone material dedicated to cliff masses. */
+const cliffMat=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x2a2016,emissiveIntensity:.32});
+cliffMat.color.setRGB(1.34,1.28,1.18);
 /* Stadtoberflächen bleiben bewusst Lambert-basiert: die Inseln bestehen aus
    vielen Instanzen, deshalb wäre ein PBR-Material hier teurer als sein Nutzen.
    Der kleine gemeinsame Shader-Zusatz gibt Putz, Dach und Stein trotzdem eine
    nachvollziehbare Nässe- und Nachtreaktion, ohne neue Texturen oder Batches. */
 const cityMat=new THREE.MeshLambertMaterial({vertexColors:true});
+cityMat.color.setRGB(1.22,1.18,1.10);
 function addCityWeather(mat){
   mat.onBeforeCompile=function(shader){
     shader.uniforms.uCityWet=terrainWetU;
@@ -87363,7 +87412,8 @@ function paintedCardGeometry(cards){
 
 /* Eigenes Material für die weiterhin vorhandenen SOLID-Geometrien
    (Stämme, Äste, Fernsilhouetten). */
-const vegMat=new THREE.MeshLambertMaterial({vertexColors:true});
+const vegMat=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x16210f,emissiveIntensity:.34});
+vegMat.color.setRGB(1.32,1.42,1.18);
 vegMat.userData.uTime={value:0};
 vegMat.onBeforeCompile=function(shader){
   shader.uniforms.uTime=vegMat.userData.uTime;
@@ -87573,8 +87623,9 @@ function makePaintedGroundMaterial(tileBase,tileCount,rootTint,tipTint,windScale
    Schatten bleiben bewusst subtil, damit die Aquarellmalerei die Hauptarbeit
    macht und das Echtzeitlicht sie nicht "tot-PBRt". */
 const paintedFoliageMat=new THREE.MeshLambertMaterial({
-  map:paintedTreeAtlas,side:THREE.DoubleSide,alphaTest:.31
+  map:paintedTreeAtlas,side:THREE.DoubleSide,alphaTest:.31,emissive:0x13200e,emissiveIntensity:.38
 });
+paintedFoliageMat.color.setRGB(1.24,1.34,1.12);
 paintedFoliageMat.forceSinglePass=true;
 paintedFoliageMat.alphaToCoverage=true;
 paintedFoliageMat.userData.uTime={value:0};
@@ -87648,8 +87699,8 @@ function buildPaintedFlowerGeo(){
     {x:.015,y:0,z:.02,w:1.28,h:1.68,ry:Math.PI/2,segments:2}
   ]);
 }
-const grassMat=makePaintedGroundMaterial(0,6,0x789985,0xf0ed9f,1.15);
-const flowerMat=makePaintedGroundMaterial(12,4,0x8eaa79,0xffefc0,.72);
+const grassMat=makePaintedGroundMaterial(0,6,0xa7bd72,0xfff4ad,1.15);
+const flowerMat=makePaintedGroundMaterial(12,4,0xb4c982,0xfff3c8,.72);
 
 /* Hybrid-Nahgras: Etwa jede dritte gemalte Gras-Instanz bekommt zusätzlich
    drei extrem billige echte Halme. Die Aquarell-Card liefert die malerische
@@ -87992,85 +88043,126 @@ function islandStreamCorridor(is,x,z){
   return 1-smoothstep(inner,inner*2.8,Math.abs(across));
 }
 
-const cGrass=new THREE.Color(0x84a84e), cGrassD=new THREE.Color(0x53773a),
-      cField=new THREE.Color(0xafbe66), cDry=new THREE.Color(0xc4b478),
-      cRock =new THREE.Color(0xd9cfb4), cRockD=new THREE.Color(0xa2937a),
-      cSand =new THREE.Color(0xf1e5c4), cDeepSand=new THREE.Color(0xd3c096),
-      cScrub=new THREE.Color(0x6c8a46), cPath=new THREE.Color(0xd6c49c),
-      cPeak=new THREE.Color(0xe9e4d4), cSnow=new THREE.Color(0xf6f4ee),
-      cScree=new THREE.Color(0xb7a98a),cForestFloor=new THREE.Color(0x365b32),
-      cLush=new THREE.Color(0x47743b),cHeath=new THREE.Color(0x73834d),
-      cWetBank=new THREE.Color(0x3d6950),cRiverSoil=new THREE.Color(0x796f55);
+const cGrass=new THREE.Color(0xb9d268), cGrassD=new THREE.Color(0x5f8b43),
+      cField=new THREE.Color(0xd8e782), cDry=new THREE.Color(0xd4c58a),
+      cRock =new THREE.Color(0xf8e7ce), cRockD=new THREE.Color(0xd8bfa0),
+      cSand =new THREE.Color(0xf8e9c8), cDeepSand=new THREE.Color(0xe6cea2),
+      cScrub=new THREE.Color(0x8da35a), cPath=new THREE.Color(0xe7d0a7),
+      cPeak=new THREE.Color(0xeee4d1), cSnow=new THREE.Color(0xf7f3e9),
+      cScree=new THREE.Color(0xcab38f),cForestFloor=new THREE.Color(0x3f7139),
+      cLush=new THREE.Color(0x528c3f),cHeath=new THREE.Color(0x98a260),
+      cWetBank=new THREE.Color(0x5b8967),cRiverSoil=new THREE.Color(0x8c8064),
+      cSunMeadow=new THREE.Color(0xe5ef92),cDeepForest=new THREE.Color(0x315f34),
+      cWarmCliff=new THREE.Color(0xffead4);
 const tmpC=new THREE.Color();
+/* WORLD TARGET FINAL VISUAL PASS 3 · reference-calibrated world design. */
+/* WORLD TARGET · grossflaechige, deterministische Kompositionsfelder.
+   Sie sind absichtlich sehr niederfrequent: Waldkern, Wiese und Lichtung
+   sollen aus 1-4 km Entfernung wie gemalte Farbmassen gelesen werden. */
+function artForestField(is,x,z){
+  return fbm2(x*.00118+is.seed*.071+17,z*.00118-is.seed*.053+43,3);
+}
+function artMeadowField(is,x,z){
+  return fbm2(x*.00092-is.seed*.061+71,z*.00092+is.seed*.047+29,2);
+}
+function artClearingField(is,x,z){
+  return fbm2(x*.00172+113,z*.00172+is.seed*.083+19,2);
+}
 function landColor(x,z,h,sl,dry,out,is){
-  const v=fbm2(x*.0045+5,z*.0045+2,3);
-  const w=fbm2(x*.013+21,z*.013+9,2);
+  /* Sekundaere Variation bleibt vorhanden, aber deutlich groesser skaliert
+     als vorher. Damit entstehen keine digitalen Sprenkelteppiche. */
+  const v=fbm2(x*.0027+5,z*.0027+2,3);
+  const w=fbm2(x*.0062+21,z*.0062+9,2);
   if(h<0.8){ out.copy(cDeepSand).lerp(cSand,clamp(h/5+.6,0,1)); return out; }
   if(h<6.5){ out.copy(cSand).lerp(cGrass,smoothstep(2.5,7.5,h)); return out; }
-  // Zackige statt rein steigungsgetreue Fels-/Grasgrenze: derselbe
-  // Schwellwert wie vorher, nur um ein grobes Rauschen verschoben — echte
-  // Grenzen folgen selten exakt der Hangneigung, Bewuchs und Verwitterung
-  // sind selbst unregelmäßig.
-  const jag=(fbm2(x*.019+61,z*.019+27,2)-.5)*.20;
-  const rocky=smoothstep(.32+jag,.76+jag,sl);
-  out.copy(cGrass).lerp(cGrassD,smoothstep(0,.5,sl)*.7+(1-v)*.3);
-  out.lerp(cScrub,w*.35);
-  // Mittelgroße Wiesenflecken — eine engere Frequenz als die Feld-Flecken
-  // weiter unten, damit Grünflächen aus der Luft in erkennbare Flicken statt
-  // eine einzige gleichförmige Fläche zerfallen.
-  const clump=fbm2(x*.0084+133,z*.0084+58,2);
-  if(sl<.4) out.lerp(cField,smoothstep(.58,.86,clump)*.55);
-  if(sl<.26&&h<110){
-    const f=vnoise2(x*.0030+9,z*.0030+4,11);
-    if(f>.54) out.lerp(cField,smoothstep(.54,.80,f)*.8);
+
+  const jag=(fbm2(x*.0105+61,z*.0105+27,2)-.5)*.12;
+  const rockBreak=fbm2(x*.00155+47,z*.00155+91,2);
+  const rocky=smoothstep(.58+jag,.90+jag,sl)*(dry<.65?(.12+.88*smoothstep(.46,.72,rockBreak)):1);
+  out.copy(cGrass).lerp(cGrassD,smoothstep(0,.58,sl)*.46+(1-v)*.15);
+  out.lerp(cScrub,w*.12);
+
+  /* Breite Wiesenflaechen: mehrere hundert Meter statt kleinteiliger
+     Flecken. Das ist die wichtigste Bodenbasis fuer den Referenzlook. */
+  const clump=fbm2(x*.00345+133,z*.00345+58,2);
+  if(sl<(is&&dry<.62?.48:.40))out.lerp(cField,smoothstep(.50,.80,clump)*(is&&dry<.62?.68:.60));
+  if(sl<.29&&h<155){
+    const f=vnoise2(x*.0022+9,z*.0022+4,11);
+    if(f>.47)out.lerp(cField,smoothstep(.47,.76,f)*.84);
   }
-  out.lerp(cDry,clamp(smoothstep(95,230,h)*.75+(dry-.5)*.55,0,.9));
-  // Dieselbe Inselanatomie, die auch die Pflanzen lenkt, zeichnet sich schon
-  // aus der Luft im Boden ab: feuchte TÃ¤ler, karge VulkanhÃ¤nge, helle Atolle.
+  /* FINAL COLOR COMPOSITION: on lush islands altitude does not equal drought.
+     The reference keeps mountain shoulders green and reserves warm beige for
+     real rock exposures and genuinely dry regions. */
+  const lushAlt=!!(is&&dry<.62);
+  const altitudeDry=lushAlt?smoothstep(320,820,h)*.10:smoothstep(180,460,h)*(dry>.60?.38:(dry>.50?.22:.10));
+  out.lerp(cDry,clamp(altitudeDry+(dry-.5)*(lushAlt?.12:.22),0,lushAlt?.20:.42));
+
   if(is){
-    const biome=islandBiome(is), tm=terrainMaskAt(is,x,z);
-    /* Grosse Vegetationsmassen muessen schon aus der Luft im Boden lesbar
-       sein. Zwei niedrige Frequenzen bilden Waldkerne und offene Lichtungen,
-       ohne Geometrie oder Laufzeit-Updates zu benoetigen. */
-    const cover=fbm2(x*.00165+is.seed*.17,z*.00165-is.seed*.11,3);
-    const clear=fbm2(x*.0038+37,z*.0038+81,2);
+    const biome=islandBiome(is),tm=terrainMaskAt(is,x,z);
+    const forestF=artForestField(is,x,z),meadowF=artMeadowField(is,x,z),clearF=artClearingField(is,x,z);
     const buildable=(tm&(TM_RUNWAY|TM_SETTLEMENT|TM_PASS|TM_COASTAL))===0;
-    if(buildable&&sl<.48){
-      if(biome===BIOME_WET||biome===BIOME_PINE){
-        const forest=smoothstep(.46,.76,cover)*(1-smoothstep(.73,.91,clear));
-        out.lerp(biome===BIOME_WET?cLush:cForestFloor,forest*.58);
+    const openMeadow=buildable&&sl<(dry<.62?.40:.31)&&h<Math.max(220,is.h*.66)
+      ?smoothstep(.48,.75,meadowF)*(1-smoothstep(.60,.83,forestF))
+      :0;
+    if(openMeadow>0)out.lerp(cSunMeadow,openMeadow*.68);
+
+    if(buildable&&sl<(dry<.62?.66:.49)){
+      if(biome===BIOME_WET||biome===BIOME_PINE||biome===BIOME_MED){
+        /* Ein klarer Waldkern plus echte Lichtungen. */
+        let forest=smoothstep(biome===BIOME_WET?.32:.35,.66,forestF);
+        forest*=1-smoothstep(.68,.89,clearF);
+        forest*=1-openMeadow*.82;
+        const target=biome===BIOME_WET?cLush:(biome===BIOME_PINE?cDeepForest:cForestFloor);
+        out.lerp(target,forest*(biome===BIOME_WET?.80:(biome===BIOME_PINE?.74:.68)));
       }else if(biome===BIOME_CULT){
-        const fields=smoothstep(.43,.72,cover)*(sl<.25?1:.35);
-        out.lerp(fields>.48?cField:cHeath,fields*.34);
+        const fields=smoothstep(.39,.70,meadowF)*(sl<.28?1:.38);
+        out.lerp(fields>.42?cField:cHeath,fields*.48);
+        const orchard=smoothstep(.40,.70,forestF)*(1-smoothstep(.72,.91,clearF))*(1-openMeadow*.72);
+        out.lerp(cForestFloor,orchard*.62);
       }else if(biome===BIOME_ALPINE&&h<is.h*.58){
-        out.lerp(cHeath,smoothstep(.50,.78,cover)*.28);
+        out.lerp(cHeath,smoothstep(.48,.76,forestF)*.28);
       }else if(biome===BIOME_DRY){
-        out.lerp(cScrub,smoothstep(.60,.82,cover)*.25);
+        out.lerp(cScrub,smoothstep(.57,.80,forestF)*.25);
       }
     }
+
+    /* Grosse warme Felsflaechen bleiben schon in der Vertexfarbe lesbar.
+       Keine Shader-Aenderung: nur das vorhandene Terrain bekommt eine
+       staerkere malerische Komposition. */
+    const cliffPatch=smoothstep(.43,.70,fbm2(x*.00118+is.seed*.23+31,z*.00118-is.seed*.17+67,2));
+    const cliffBoost=(is.kind==='cliff'||is.kind==='ridge'||is.kind==='alps')
+      ?smoothstep(.34,.64,sl)*smoothstep(22,120,h)*cliffPatch:0;
+    out.lerp(cWarmCliff,cliffBoost*.34*(.72+.28*dry));
+    const rockPatch=smoothstep(.46,.72,fbm2(x*.00145+is.seed*.19+17,z*.00145-is.seed*.13+53,2));
+    const mountainFace=(is.kind==='cliff'||is.kind==='ridge'||is.kind==='alps'||is.kind==='pines')
+      ?smoothstep(.20,.50,sl)*smoothstep(32,Math.max(88,is.h*.22),h)*
+       (1-smoothstep(Math.max(190,is.h*.68),Math.max(270,is.h*.94),h))*rockPatch:0;
+    if(mountainFace>0)out.lerp(cWarmCliff,mountainFace*(is.kind==='cliff'?.82:(is.kind==='ridge'?.44:.50)));
+
     const river=islandStreamCorridor(is,x,z);
     if(river>0&&h>3){
       out.lerp(cWetBank,river*(biome===BIOME_WET?.54:.38));
       out.lerp(cRiverSoil,smoothstep(.62,.98,river)*.28);
     }
-    if(biome===BIOME_WET&&(tm&TM_VALLEY))out.lerp(cGrassD,.24);
+    if(biome===BIOME_WET&&(tm&TM_VALLEY))out.lerp(cGrassD,.22);
     else if(biome===BIOME_ATOLL)out.lerp(cSand,.18);
     else if(biome===BIOME_VOLCANIC)out.lerp(cRockD,.20+smoothstep(60,260,h)*.18);
     else if(biome===BIOME_ALPINE&&h>is.h*.48)out.lerp(cScree,.20);
-    else if(biome===BIOME_DRY)out.lerp(cDry,.15);
+    else if(biome===BIOME_DRY)out.lerp(cDry,.14);
   }
-  // Geröll/Trockenboden auf mittlerer Steigung — bisher sprang die Farbe an
-  // dieser Stelle direkt von Gras auf blanken Fels, ganz ohne Übergangston.
-  const scree=smoothstep(.18+jag,.34+jag,sl)*(1-smoothstep(.40+jag,.60+jag,sl));
-  out.lerp(cScree,scree*.6);
-  out.lerp(rocky>.55?cRockD:cRock,rocky*.92);
+
+  const scree=smoothstep(.19+jag,.34+jag,sl)*(1-smoothstep(.42+jag,.61+jag,sl));
+  const harshBiome=is&&(islandBiome(is)===BIOME_ALPINE||islandBiome(is)===BIOME_DRY||islandBiome(is)===BIOME_VOLCANIC);
+  out.lerp(cScree,scree*(harshBiome?.48:.24));
+  out.lerp(rocky>.62?cRockD:cRock,rocky*(harshBiome?.72:.16));
   if(sl<.42&&h>9){
     const pth=Math.abs(fbm2(x*.0022+77,z*.0022+31,2)-.5);
-    if(pth<.016) out.lerp(cPath,(1-pth/.016)*.75);
+    if(pth<.016)out.lerp(cPath,(1-pth/.016)*.72);
   }
-  out.lerp(cPeak,smoothstep(300,620,h)*.9);
-  out.lerp(cSnow,smoothstep(700,1000,h)*(.55+(1-sl)*.45));
-  out.offsetHSL(0,0,(v-.5)*.06);
+  const alpinePeak=is&&islandBiome(is)===BIOME_ALPINE;
+  out.lerp(cPeak,smoothstep(alpinePeak?420:900,alpinePeak?760:1320,h)*(alpinePeak?.62:.10));
+  if(alpinePeak)out.lerp(cSnow,smoothstep(820,1120,h)*(.42+(1-sl)*.38));
+  out.offsetHSL(0,0,(v-.5)*.035);
   return out;
 }
 
@@ -88087,10 +88179,13 @@ function landColor(x,z,h,sl,dry,out,is){
 /* Stabiles toroidales Weltzellen-Raster: Beim Ueberqueren einer Zelle
    wechselt nur die hinterste Reihe an den neuen vorderen Rand. Zwei
    unregelmaessige Punkte pro Zelle verhindern sichtbare Rastermuster. */
-const GRASS_GRID_X=50,GRASS_GRID_Z=44,GRASS_LAYERS=IS_MOBILE?2:3,
+/* WORLD TARGET: die Nahwiese soll wie eine zusammenhaengende gemalte
+   Grasflaeche wirken. Mehr Instanzen, etwas engere Zellen und vier Layer auf
+   Desktop ergeben deutlich mehr sichtbare Halme, ohne neue Draw-Calls. */
+const GRASS_GRID_X=60,GRASS_GRID_Z=54,GRASS_LAYERS=IS_MOBILE?2:4,
       GRASS_N=GRASS_GRID_X*GRASS_GRID_Z*GRASS_LAYERS,
-      GRASS_STEP_X=2.85,GRASS_STEP_Z=3.05;
-const GRASS_ACCENT_EVERY=IS_MOBILE?4:3,GRASS_ACCENT_N=Math.ceil(GRASS_N/GRASS_ACCENT_EVERY);
+      GRASS_STEP_X=2.46,GRASS_STEP_Z=2.66;
+const GRASS_ACCENT_EVERY=IS_MOBILE?5:4,GRASS_ACCENT_N=Math.ceil(GRASS_N/GRASS_ACCENT_EVERY);
 let nearVegRevision=0;
 function nearVegDensity(){
   const p=(SAVE&&SAVE.gfx&&SAVE.gfx.preset)||'ultra';
@@ -88144,7 +88239,7 @@ function buildGrass(){
 function updateGrass(dt,T,px,pz,agl){
   if(!grassMesh)return;
   grassMat.userData.uTime.value=T;
-  grassOn=agl<108&&agl>-30;
+  grassOn=agl<160&&agl>-30;
   grassMesh.visible=grassOn;
   if(grassAccentMesh)grassAccentMesh.visible=grassOn;
   if(!grassOn)return;
@@ -88175,14 +88270,19 @@ function updateGrass(dt,T,px,pz,agl){
     const z=(gz+.5+(ihash(gx,gz,7207+layer*149)-.5)*.74)*GRASS_STEP_Z;
     const h=heightAt(x,z);
     const grassIs=hOwner, grassBiome=grassIs?islandBiome(grassIs):null;
-    let ok=h>7&&h<105;
+    const grassMax=grassIs&&grassIs.dry<.64?Math.min(720,Math.max(400,grassIs.h*.62)):300;
+    let ok=h>4&&h<grassMax;
     if(ok&&grassIs&&grassIs.stream){
       const rec=live.get(grassIs.key);
       ok=rec&&rec.streamPath
         ?!streamBlocked(rec,x-grassIs.cx,z-grassIs.cz,5)
         :islandStreamCorridor(grassIs,x,z)<.42;
     }
-    if(ok) ok=slopeAt(x,z,h)<.34;
+    if(ok) ok=slopeAt(x,z,h)<(grassIs&&grassIs.dry<.64?.50:.42);
+    if(ok&&grassIs&&h>230){
+      const mf=artMeadowField(grassIs,x,z),ff=artForestField(grassIs,x,z),cf=artClearingField(grassIs,x,z);
+      ok=(mf>.43||cf>.62)&&ff<.79;
+    }
     if(ok){
       const pth=Math.abs(fbm2(x*.0022+77,z*.0022+31,2)-.5);
       ok=pth>.02;
@@ -88197,18 +88297,18 @@ function updateGrass(dt,T,px,pz,agl){
       continue;
     }
     slot.valid=true;
-    const sc=.75+ihash(gx,gz,7309+layer*163)*.55;
+    const sc=.90+ihash(gx,gz,7309+layer*163)*.72;
     _gq4.setFromAxisAngle(_gUP,ihash(gx,gz,7411+layer*181)*TAU);
-    _gs4.set(sc,sc*(.85+ihash(gx,gz,7517+layer*193)*.3),sc);
+    _gs4.set(sc,sc*(1.00+ihash(gx,gz,7517+layer*193)*.40),sc);
     _gp4.set(x,h,z);
     _gm4.compose(_gp4,_gq4,_gs4);
     grassMesh.setMatrixAt(i,_gm4);
     if(grassBiome===BIOME_DRY||grassBiome===BIOME_VOLCANIC)
-      _gc4.copy(cDry).lerp(cScrub,.18+ihash(gx,gz,7613+layer*211)*.32);
-    else if(grassBiome===BIOME_ATOLL)_gc4.copy(cField).lerp(cGrass,.38+ihash(gx,gz,7703+layer*223)*.28);
-    else if(grassBiome===BIOME_ALPINE)_gc4.copy(cScrub).lerp(cGrassD,.30+ihash(gx,gz,7817+layer*227)*.35);
-    else if(grassBiome===BIOME_WET)_gc4.copy(cGrassD).lerp(cGrass,.72+ihash(gx,gz,7907+layer*233)*.28);
-    else _gc4.copy(cGrassD).lerp(cGrass,.55+ihash(gx,gz,8011+layer*239)*.45);
+      _gc4.copy(cDry).lerp(cField,.20+ihash(gx,gz,7613+layer*211)*.26);
+    else if(grassBiome===BIOME_ATOLL)_gc4.copy(cField).lerp(cSunMeadow,.28+ihash(gx,gz,7703+layer*223)*.24);
+    else if(grassBiome===BIOME_ALPINE)_gc4.copy(cGrass).lerp(cField,.22+ihash(gx,gz,7817+layer*227)*.28);
+    else if(grassBiome===BIOME_WET)_gc4.copy(cGrass).lerp(cSunMeadow,.20+ihash(gx,gz,7907+layer*233)*.25);
+    else _gc4.copy(cGrass).lerp(cSunMeadow,.24+ihash(gx,gz,8011+layer*239)*.30);
     grassMesh.setColorAt(i,_gc4);
     if(setGrassAccent(i,_gm4,_gc4))accentTouched=true;
   }
@@ -88227,7 +88327,7 @@ const _gUP=new THREE.Vector3(0,1,0);
    deutlich spärlicher und an dieselben "Feld"-Flecken gekoppelt, die
    landColor() für die Wiesen-Einfärbung nutzt — Blüten tauchen so genau
    dort auf, wo das Terrain ohnehin schon als Wiese eingefärbt ist. */
-const FLOWER_N=900, FLOWER_GRID=30, FLOWER_STEP=5.15;
+const FLOWER_N=3000, FLOWER_GRID=55, FLOWER_STEP=4.05;
 let flowerMesh=null, flowerNext=0, flowerOn=false, flowerSlots=null;
 const FLOWER_HUES=[0.14,0.98,0.78,0.02];   // gelb, rosa-rot, violett, orange-rot
 function buildFlowers(){
@@ -88249,7 +88349,7 @@ function buildFlowers(){
 function updateFlowers(dt,T,px,pz,agl){
   if(!flowerMesh)return;
   flowerMat.userData.uTime.value=T;
-  flowerOn=agl<108&&agl>-30;
+  flowerOn=agl<160&&agl>-30;
   flowerMesh.visible=flowerOn;
   if(!flowerOn)return;
   const batch=24;
@@ -88274,14 +88374,15 @@ function updateFlowers(dt,T,px,pz,agl){
     const z=(gz+.5+(ihash(gx,gz,9209)-.5)*.72)*FLOWER_STEP;
     const h=heightAt(x,z);
     const flowerIs=hOwner, flowerBiome=flowerIs?islandBiome(flowerIs):null;
-    let ok=h>8&&h<95;
+    const flowerMax=flowerIs&&flowerIs.dry<.64?Math.min(540,Math.max(320,flowerIs.h*.50)):250;
+    let ok=h>6&&h<flowerMax;
     if(ok&&flowerIs&&flowerIs.stream){
       const rec=live.get(flowerIs.key);
       ok=rec&&rec.streamPath
         ?!streamBlocked(rec,x-flowerIs.cx,z-flowerIs.cz,8)
         :islandStreamCorridor(flowerIs,x,z)<.30;
     }
-    if(ok) ok=slopeAt(x,z,h)<.26;
+    if(ok) ok=slopeAt(x,z,h)<(flowerIs&&flowerIs.dry<.64?.42:.34);
     if(ok){
       const pth=Math.abs(fbm2(x*.0022+77,z*.0022+31,2)-.5);
       ok=pth>.025;
@@ -88290,9 +88391,13 @@ function updateFlowers(dt,T,px,pz,agl){
       // an dieselben "Feld"-Flecken gekoppelt wie landColor()s Wiesenfärbung,
       // dazu ein eigener Streuwert — macht Blüten insgesamt spärlich statt
       // die ganze Wiese vollzupflastern.
-      const f=vnoise2(x*.0030+9,z*.0030+4,11);
-      const chance=flowerBiome===BIOME_WET?.18:(flowerBiome===BIOME_CULT?.14:.10);
-      ok=f>.50&&ihash(gx,gz,9311)<chance;
+      const f=vnoise2(x*.0024+9,z*.0024+4,11);
+      const patch=fbm2(x*.00145+83,z*.00145+37,2);
+      const meadow=flowerIs?artMeadowField(flowerIs,x,z):.5,forest=flowerIs?artForestField(flowerIs,x,z):.5;
+      const chance=flowerBiome===BIOME_WET?.62:(flowerBiome===BIOME_CULT?.56:.44);
+      /* Flower colour islands climb sunny shoulders, but forest cores remain
+         visually quiet so the reference-like meadow/forest contrast survives. */
+      ok=f>.39&&patch>.42&&meadow>.43&&forest<.76&&ihash(gx,gz,9311)<chance;
     }
     if(ok&&(flowerBiome===BIOME_DRY||flowerBiome===BIOME_VOLCANIC))ok=false;
     if(ok) ok=!runwayUnder(x,z,10);
@@ -88303,7 +88408,7 @@ function updateFlowers(dt,T,px,pz,agl){
       continue;
     }
     slot.valid=true;
-    const sc=.8+ihash(gx,gz,9413)*.7;
+    const sc=1.05+ihash(gx,gz,9413)*.95;
     _gq4.setFromAxisAngle(_gUP,ihash(gx,gz,9511)*TAU);
     _gs4.set(sc,sc,sc);
     _gp4.set(x,h,z);
@@ -88326,6 +88431,23 @@ function updateFlowers(dt,T,px,pz,agl){
 /* Dev-QA ohne sichtbares HUD: In der Browser-Konsole liefert
    SommerwindVegetation.stats() Draw-Calls, Dreiecke und aktive Pools.
    Die Zählung läuft nur auf Abruf und kostet im normalen Spiel nichts. */
+/* Strukturelle Zielmetriken fuer den World-Design-Pass. Sie ersetzen keinen
+   visuellen Screenshot-Vergleich, machen aber Dichte/Kompositionsregressionen
+   sofort sichtbar. */
+window.SommerwindWorldDesignMetrics=function(){
+  let islands=0,big=0,villages=0,trees=0,ground=0,midground=0,near=0,mid=0,far=0;
+  for(const rec of live.values()){
+    islands++;if(rec.is.big)big++;if(rec.is.village)villages++;
+    for(const m of rec.meshes){
+      if(!m||!m.userData||!m.userData.vegType)continue;
+      const n=m.isInstancedMesh?m.count:1,ld=m.userData.vegLOD;
+      if(TREE_PLANTS.has(m.userData.vegType))trees+=n;else ground+=n;
+      if(ld==='midground')midground+=n;else if(ld==='near')near+=n;else if(ld==='mid')mid+=n;else if(ld==='far')far+=n;
+    }
+  }
+  return {islands,big,villages,trees,ground,midground,near,mid,far,
+    grass:GRASS_N,flowers:FLOWER_N,grassAccent:GRASS_ACCENT_N};
+};
 window.SommerwindVegetation={
   stats:function(){
     let gv=0,fv=0;
@@ -90015,15 +90137,15 @@ function pickPlantType(is,biome,h,sl,mask,coast,r){
   return r<.23?'pine':(r<.42?'olive':(r<.54?'windolive':(r<.67?'bush':(r<.78?'silver':(r<.87?'cyp':(r<.94?'oleander':'drygrass'))))));
 }
 function plantTint(type,is,rnd){
-  const dry=(is.dry-.5)*.10, c=new THREE.Color();
-  if(type==='dead')return c.setHSL(.09,.14,.62+rnd()*.12);
-  if(type==='silver'||type==='olive'||type==='windolive')return c.setHSL(.20+rnd()*.025,.12+rnd()*.08,.72+rnd()*.12-dry);
-  if(type==='drygrass')return c.setHSL(.13+rnd()*.025,.32+rnd()*.12,.75+rnd()*.10);
-  if(type==='cactus')return c.setHSL(.24+rnd()*.025,.22+rnd()*.10,.67+rnd()*.10);
-  if(type==='oleander')return c.setHSL(.28+rnd()*.025,.20+rnd()*.10,.72+rnd()*.10-dry);
-  if(type==='fern')return c.setHSL(.27+rnd()*.035,.34+rnd()*.12,.67+rnd()*.10);
-  if(type==='palm'||type==='ground'||type==='beachgrass')return c.setHSL(.27+rnd()*.04,.28+rnd()*.12,.70+rnd()*.12-dry);
-  return c.setHSL(.25+rnd()*.045,.24+rnd()*.13,.67+rnd()*.14-dry);
+  const dry=(is.dry-.5)*.07, c=new THREE.Color();
+  if(type==='dead')return c.setHSL(.09,.15,.70+rnd()*.10);
+  if(type==='silver'||type==='olive'||type==='windolive')return c.setHSL(.20+rnd()*.025,.16+rnd()*.09,.80+rnd()*.10-dry);
+  if(type==='drygrass')return c.setHSL(.13+rnd()*.025,.36+rnd()*.12,.80+rnd()*.09);
+  if(type==='cactus')return c.setHSL(.24+rnd()*.025,.28+rnd()*.10,.73+rnd()*.09);
+  if(type==='oleander')return c.setHSL(.28+rnd()*.025,.26+rnd()*.10,.79+rnd()*.10-dry);
+  if(type==='fern')return c.setHSL(.27+rnd()*.035,.40+rnd()*.12,.75+rnd()*.10);
+  if(type==='palm'||type==='ground'||type==='beachgrass')return c.setHSL(.27+rnd()*.04,.34+rnd()*.12,.77+rnd()*.11-dry);
+  return c.setHSL(.25+rnd()*.045,.32+rnd()*.13,.76+rnd()*.12-dry);
 }
 const TREE_PLANTS=new Set(['pine','tall','alpine','cyp','olive','windolive','palm','dead']);
 const LOW_PLANTS=new Set(['bush','coast','oleander','silver','drygrass','beachgrass','fern','cactus','ground']);
@@ -90189,7 +90311,14 @@ function paintedTreeFoliageGeo(type,v){
     const q=[[-2.4,4.3,.4,5.8,4.4,.10],[2.3,4.6,-.5,5.7,4.2,1.1],[-.7,5.6,1.5,5.6,4.0,2.2],[1.0,5.9,-1.4,5.2,3.8,.62],[0,6.3,.1,6.3,4.2,1.62]];
     q.forEach(function(a,i){cards.push({x:a[0]+push,y:a[1],z:a[2],w:a[3],h:a[4],ry:a[5],leanX:type==='windolive'?-0.55:.08,tile:8+(i+v)%4,segments:3});});
   }
-  return treeVariantTransform(paintedCardGeometry(cards),type,v,1);
+  const crown=paintedCardGeometry(cards);
+  /* WORLD TARGET: die Referenz liest Baumgruppen als grosse, geschlossene
+     Kronenmassen. Near-Kronen werden deshalb breiter/etwas hoeher, ohne mehr
+     Material- oder Draw-Calls. */
+  const sx=type==='cyp'?1.32:(type==='palm'?1.34:(type==='alpine'?1.42:1.58));
+  const sy=type==='cyp'?1.08:(type==='palm'?1.10:1.16);
+  crown.scale(sx,sy,sx);
+  return treeVariantTransform(crown,type,v,1);
 }
 function paintedLowPlantGeo(type){
   if(type==='bush'||type==='coast'||type==='oleander'){
@@ -90224,34 +90353,63 @@ function paintedMidGroundcoverGeo(){
     {x:-.2,y:0,z:.7,w:5.4,h:2.20,ry:2.30,tile:7,segments:2}
   ]);
 }
+/* WORLD TARGET PASS 4: broad closed canopy volumes behind individual trees.
+   These are intentionally low-poly and opaque so forest mass survives distance
+   without alpha shimmer or new shader code. */
+function forestCanopyMassGeo(){
+  /* FINAL FOREST MASS: a mid-distance mass is now a tiny grove, not a pile
+     of ground-cover bubbles. Six visible trunks lift broad, flattened crowns
+     above the terrain. From 0.8-6 km this reads as Mediterranean umbrella
+     pines/olive crowns while staying opaque, low-poly and one instanced draw. */
+  const p=[],trees=[[-8.5,-3.2,11.2,.92,.15],[6.8,-2.0,13.2,1.04,1.05],[-1.2,5.8,14.8,1.12,2.10],
+    [9.2,6.4,10.4,.88,2.75],[-10.0,7.0,9.5,.82,3.45],[2.2,-8.0,12.0,.96,4.35]];
+  for(let i=0;i<trees.length;i++){
+    const q=trees[i],x=q[0],z=q[1],h=q[2],sc=q[3],ry=q[4];
+    let g=new THREE.CylinderGeometry(.24*sc,.43*sc,h*.62,5);g.translate(x,h*.31,z);p.push(geoCol(g,i%2?0x66503a:0x70543c));
+    g=new THREE.IcosahedronGeometry(1,0);g.scale(4.9*sc,1.62*sc,4.05*sc);g.rotateY(ry);g.translate(x,h*.73,z);
+    p.push(geoCol(g,i%3===0?0x507b3d:(i%3===1?0x5d8943:0x678f47)));
+    g=new THREE.IcosahedronGeometry(1,0);g.scale(3.65*sc,1.22*sc,3.10*sc);g.rotateY(ry+.62);
+    g.translate(x+(i%2?.9:-.7)*sc,h*.87,z+(i%3-1)*.55*sc);p.push(geoCol(g,i%2?0x719b4d:0x638f46));
+  }
+  return mergeGeos(p);
+}
 function nearTreeVariantGeo(type,baseFn,v){return treeVariantTransform(baseFn(),type,v,1);}
 function midTreeSilhouetteGeo(type,v){
-  const p=[],ever=type==='pine'||type==='tall'||type==='alpine'||type==='cyp';
+  const p=[],ever=type==='tall'||type==='alpine'||type==='cyp';
   let n=new THREE.CylinderGeometry(type==='palm'?.11:.15,type==='palm'?.18:.24,4.9,5);n.translate(0,2.45,0);p.push(geoCol(n,type==='dead'?0x67543f:0x62503b));
   if(type==='dead')return treeVariantTransform(mergeGeos(p),type,v,.8);
   if(ever){
-    const tall=type==='cyp'?6.8:(type==='tall'?7.5:6),rad=type==='cyp'?1.15:(type==='alpine'?2.0:2.35);
+    const tall=type==='cyp'?7.6:(type==='tall'?8.4:6.9),rad=type==='cyp'?1.48:(type==='alpine'?2.75:3.55);
     n=new THREE.ConeGeometry(rad,tall,7);n.translate(0,4.8,0);p.push(geoCol(n,type==='alpine'?0x456449:0x4c7245));
     if(type!=='cyp'){n=new THREE.ConeGeometry(rad*.76,tall*.68,7);n.translate(0,6.3,0);p.push(geoCol(n,0x5a804e));}
   }else if(type==='palm'){
     for(let k=0;k<4;k++){n=new THREE.ConeGeometry(1.25,3.8,4);n.rotateZ(Math.PI/2);n.rotateY(k*Math.PI/2);n.translate(Math.cos(k*Math.PI/2)*1.6,5.6,Math.sin(k*Math.PI/2)*1.6);p.push(geoCol(n,0x678b4e));}
   }else{
-    n=new THREE.IcosahedronGeometry(1,1);n.scale(type==='windolive'?3.1:3.0,1.65,2.5);n.translate(type==='windolive'?.5:0,5.15,0);p.push(geoCol(n,0x6d895d));
-    n=new THREE.IcosahedronGeometry(1,0);n.scale(1.8,1.15,1.7);n.translate(type==='windolive'?-1.0:1.1,5.7,.25);p.push(geoCol(n,0x789568));
+    if(type==='pine'){
+      n=new THREE.IcosahedronGeometry(1,1);n.scale(6.5,2.05,5.0);n.translate(-.4,6.4,0);p.push(geoCol(n,0x5f873f));
+      n=new THREE.IcosahedronGeometry(1,0);n.scale(4.2,1.45,3.6);n.translate(3.1,6.8,.5);p.push(geoCol(n,0x75984d));
+    }else{
+      n=new THREE.IcosahedronGeometry(1,1);n.scale(type==='windolive'?4.65:4.45,2.18,type==='windolive'?3.65:3.65);n.translate(type==='windolive'?.5:0,5.15,0);p.push(geoCol(n,0x6d895d));
+      n=new THREE.IcosahedronGeometry(1,0);n.scale(2.35,1.42,2.15);n.translate(type==='windolive'?-1.0:1.1,5.7,.25);p.push(geoCol(n,0x789568));
+    }
   }
   return treeVariantTransform(mergeGeos(p),type,v,.8);
 }
 function farTreeSilhouetteGeo(type,v){
-  const p=[],ever=type==='pine'||type==='tall'||type==='alpine'||type==='cyp';
+  const p=[],ever=type==='tall'||type==='alpine'||type==='cyp';
   let n=new THREE.CylinderGeometry(type==='palm'?.10:.16,type==='palm'?.16:.24,4.8,5);n.translate(0,2.4,0);p.push(geoCol(n,type==='dead'?0x6b5842:0x66523d));
   if(type==='dead')return treeVariantTransform(mergeGeos(p),type,v,.6);
   if(ever){
-    const tall=type==='cyp'?6.4:(type==='tall'?7.2:5.8),rad=type==='cyp'?1.15:(type==='alpine'?1.9:2.25);
+    const tall=type==='cyp'?7.3:(type==='tall'?8.1:6.6),rad=type==='cyp'?1.42:(type==='alpine'?2.60:3.35);
     n=new THREE.ConeGeometry(rad,tall,5);n.translate(0,4.7,0);p.push(geoCol(n,type==='alpine'?0x49684b:0x4f7446));
   }else if(type==='palm'){
     n=new THREE.ConeGeometry(2.3,2.6,6);n.rotateZ(Math.PI);n.translate(0,5.8,0);p.push(geoCol(n,0x6c8c51));
   }else{
-    n=new THREE.SphereGeometry(type==='windolive'?2.25:2.55,6,4);n.scale(1.25,.72,1);n.translate(type==='windolive'?.45:0,5.2,0);p.push(geoCol(n,0x78906b));
+    if(type==='pine'){
+      n=new THREE.IcosahedronGeometry(1,0);n.scale(6.2,1.9,4.8);n.translate(0,6.0,0);p.push(geoCol(n,0x668b46));
+    }else{
+      n=new THREE.SphereGeometry(type==='windolive'?3.25:3.65,6,4);n.scale(1.32,.80,1.08);n.translate(type==='windolive'?.45:0,5.2,0);p.push(geoCol(n,0x78906b));
+    }
   }
   return treeVariantTransform(mergeGeos(p),type,v,.6);
 }
@@ -90270,7 +90428,7 @@ function buildGreen(t,rec){
   types.forEach(function(k){mats[k]=[];cols[k]=[];});
   // Ein kleines Ortsraster erzwingt nur fuer Kronen Mindestabstand. Die
   // wenigen Listenvergleiche laufen einmal beim Inselbau, nie pro Frame.
-  const treeBins=new Map(),treeGap=14,treeGap2=treeGap*treeGap;
+  const treeBins=new Map(),treeGap=6.4,treeGap2=treeGap*treeGap;
   function reserveTree(x,z){
     const bx=Math.floor(x/treeGap),bz=Math.floor(z/treeGap);
     for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
@@ -90281,9 +90439,14 @@ function buildGreen(t,rec){
     if(a)a.push({x:x,z:z});else treeBins.set(key,[{x:x,z:z}]);
     return true;
   }
-  const density=biome===BIOME_DRY||biome===BIOME_VOLCANIC?.62:(biome===BIOME_WET?1.16:1);
-  const want=Math.round(clamp(spanR*spanR/9400,28,460)*density);
-  const groves=6+((rnd()*7)|0), gc=[];
+  /* WORLD TARGET: geschlossene Waldmassen statt verstreuter Einzelpunkte. */
+  const artDensity=biome===BIOME_DRY||biome===BIOME_VOLCANIC?.88:
+    (biome===BIOME_WET?2.05:(biome===BIOME_PINE?1.90:(biome===BIOME_CULT?1.62:1.58)));
+  /* Mobile reduziert Instanzen, nicht die optische Massenform: Mid/Far-LOD
+     und die groesseren Kronen bleiben identisch. */
+  const density=artDensity*((typeof IS_MOBILE!=='undefined'&&IS_MOBILE)?.76:1);
+  const want=Math.round(clamp(spanR*spanR/3900,78,is.big?1850:760)*density);
+  const groves=(is.big?15:9)+((rnd()*(is.big?12:8))|0), gc=[];
   for(let k=0;k<groves;k++){
     let gx,gz,h,n=0;
     do{
@@ -90294,10 +90457,13 @@ function buildGreen(t,rec){
       }else if(k<2&&is.tp&&(biome===BIOME_WET||biome===BIOME_PINE)){
         const q=terrainPlanPoint(is,is.tp.passX+(rnd()-.5)*.32,is.tp.side*(.22+rnd()*.35));
         gx=q.x;gz=q.z;
+      }else if(is.big&&is.dry<.66&&biome!==BIOME_VOLCANIC&&k>=2&&k<8){
+        const band=k-2,u=-.58+band*.22+(rnd()-.5)*.16,v=(band%2?1:-1)*(.16+rnd()*.40);
+        const q=terrainPlanPoint(is,u,v);gx=q.x;gz=q.z;
       }else{const a=rnd()*TAU,rr=Math.sqrt(rnd())*spanR*.84;gx=Math.cos(a)*rr;gz=Math.sin(a)*rr;}
       h=gridH(t,gx,gz); n++;
     }while((h<9||h>is.h*.9)&&n<20);
-    gc.push({x:gx,z:gz,rx:75+rnd()*165,rz:35+rnd()*95,a:is.rot+(rnd()-.5)*1.25});
+    gc.push({x:gx,z:gz,rx:(is.big?175:92)+rnd()*(is.big?320:190),rz:(is.big?92:48)+rnd()*(is.big?190:110),a:is.rot+(rnd()-.5)*1.15});
   }
   let guard=0,count=0;
   while(count<want&&guard<want*14){
@@ -90307,18 +90473,29 @@ function buildGreen(t,rec){
     const ca=Math.cos(gg.a),sa=Math.sin(gg.a);
     const x=gg.x+ex*ca-ez*sa, z=gg.z+ex*sa+ez*ca, h=gridH(t,x,z), sl=gridS(t,x,z);
     if(h<7||h>is.h*.94)continue;
-    if(sl>.60)continue;
+    if(sl>(is.dry<.66?.70:.60))continue;
     if(rwBlocked(is,x,z))continue;
     if(vegetationBlocked(rec,is,x,z))continue;
     const mask=terrainMaskLocal(is,x,z), beach=h<18||(mask&TM_COASTAL)!==0;
-    const macroCover=fbm2((x+is.cx)*.00165+is.seed*.17,(z+is.cz)*.00165-is.seed*.11,3);
+    const macroCover=artForestField(is,x+is.cx,z+is.cz);
+    const meadowCover=artMeadowField(is,x+is.cx,z+is.cz);
+    const clearingCover=artClearingField(is,x+is.cx,z+is.cz);
+    const openMeadow=sl<.31&&h<Math.max(175,is.h*.58)&&meadowCover>.58&&macroCover<.62;
     /* Wald folgt jetzt stärker Topografie und Exposition: geschützte
        Tal-/Leehänge dichter, Grate und alpine Baumgrenze lichter. */
     const aspect=Math.atan2(z,x),lee=.5+.5*Math.cos(aspect-(is.tp.settleA+Math.PI));
     const exposed=(mask&(TM_RIDGE|TM_LOOKOUT|TM_BARRIER))!==0;
-    const treeLine=(biome===BIOME_ALPINE||biome===BIOME_PINE)?Math.max(150,is.h*(.56+.08*lee)):is.h*.90;
-    if((biome===BIOME_WET||biome===BIOME_PINE)&&macroCover<(.40+.08*(1-lee))&&rnd()<.72)continue;
+    const treeLine=biome===BIOME_ALPINE?Math.max(170,is.h*(.64+.07*lee)):(biome===BIOME_PINE?Math.max(190,is.h*(.76+.07*lee)):is.h*.94);
+    if((biome===BIOME_WET||biome===BIOME_PINE)&&macroCover<(.36+.07*(1-lee))&&rnd()<.66)continue;
     let type=pickPlantType(is,biome,h,sl,mask,beach,rnd());
+    if(is.big&&is.dry<.66&&h>is.h*.28&&h<is.h*.82&&sl<.68&&!openMeadow&&
+       (biome===BIOME_MED||biome===BIOME_WET||biome===BIOME_PINE||biome===BIOME_CULT)&&rnd()<.58){
+      type=biome===BIOME_PINE?(rnd()<.58?'tall':'pine'):(rnd()<.82?'pine':'olive');
+    }
+    /* Grossflaechige Lichtungen bleiben wirklich offen: Gras/Blumen koennen
+       dort spaeter den Vordergrund uebernehmen. */
+    if(openMeadow&&TREE_PLANTS.has(type)&&rnd()<.94)
+      type=(biome===BIOME_WET&&rnd()<.28)?'fern':(rnd()<.52?'ground':'bush');
     if(TREE_PLANTS.has(type)&&h>treeLine)type=groveEdgePlant(biome,rnd());
     if(TREE_PLANTS.has(type)&&exposed&&rnd()<.48)type=groveEdgePlant(biome,rnd());
     if((mask&TM_PASS)&&!PASS_PLANTS.has(type))continue;
@@ -90326,10 +90503,13 @@ function buildGreen(t,rec){
     // Klare Waldzonierung: dichter/hoher Kern, gemischte Mittelzone,
     // niedriger Busch-/Unterholzrand. Das erzeugt aus der Luft eine lesbare
     // Baumkronenmasse statt gleichmäßig verteilter Einzelpunkte.
-    const forestZone=rr<.43?0:(rr<.74?1:2),edge=smoothstep(.58,.98,rr);
-    if(forestZone===0&&TREE_PLANTS.has(type)&&sl<.34&&
-       (biome===BIOME_WET||biome===BIOME_PINE||biome===BIOME_CULT)&&rnd()<.58)type='pine';
-    if(forestZone===2&&TREE_PLANTS.has(type)&&rnd()<.88)type=groveEdgePlant(biome,rnd());
+    const forestZone=rr<.60?0:(rr<.88?1:2),edge=smoothstep(.70,.99,rr);
+    if(forestZone===0&&sl<.38&&!openMeadow&&
+       (biome===BIOME_WET||biome===BIOME_PINE||biome===BIOME_CULT||biome===BIOME_MED)&&rnd()<.93){
+      type=biome===BIOME_CULT?(rnd()<.58?'olive':'pine'):
+           (biome===BIOME_PINE?(rnd()<.62?'tall':'pine'):'pine');
+    }
+    if(forestZone===2&&TREE_PLANTS.has(type)&&rnd()<.72)type=groveEdgePlant(biome,rnd());
     else if(TREE_PLANTS.has(type)&&rnd()<edge*.42)type=groveEdgePlant(biome,rnd());
     // Nicht nur der Stamm, sondern die gesamte Krone muss vom Wasser frei
     // bleiben. Besonders die Vierer-Piniengruppe braucht deutlich mehr
@@ -90342,9 +90522,12 @@ function buildGreen(t,rec){
     dummy.position.set(x,h-.6,z);
     dummy.rotation.set(0,rnd()*TAU,0);
     const low=LOW_PLANTS.has(type);
-    const age=TREE_PLANTS.has(type)?(rnd()<.17?.68:(rnd()>.80?1.22:1)):1;
-    const zoneScale=TREE_PLANTS.has(type)?(forestZone===0?1.10:(forestZone===2?.84:1)):1;
-    const base=low?.62:(type==='cyp'?.78:.82), sc=(base+rnd()*(low?.52:.62))*age*zoneScale;
+    /* Near trees must stay human-scale in low flight. Forest density and
+       the dedicated mid/far canopy carry mass; individual crowns no longer
+       inflate into 40-70 m cards that can swallow the camera. */
+    const age=TREE_PLANTS.has(type)?(rnd()<.10?.82:(rnd()>.72?1.38:1.10)):1;
+    const zoneScale=TREE_PLANTS.has(type)?(forestZone===0?1.30:(forestZone===1?1.16:1.02)):1;
+    const base=low?.76:(type==='cyp'?.94:1.00), sc=(base+rnd()*(low?.72:.72))*age*zoneScale;
     dummy.rotation.z=(type==='coast'||type==='windolive'||type==='alpine')?is.tp.side*.10:0;
     dummy.scale.set(sc*(.88+rnd()*.24),sc*(.86+rnd()*.38),sc*(.88+rnd()*.24));
     dummy.updateMatrix();
@@ -90354,12 +90537,12 @@ function buildGreen(t,rec){
   // lockerer Olivenhain am Ortsrand, klarer lesbar als weiterer Zufallswald.
   if((biome===BIOME_CULT||is.village)&&is.kind!=='volcano'){
     const a=is.tp.settleA+.42,ca=Math.cos(a),sa=Math.sin(a);
-    for(let row=0;row<2;row++)for(let i=-3;i<=3;i++){
-      const rr=spanR*(.48+row*.055),x=ca*rr-sa*i*21,z=sa*rr+ca*i*21;
+    for(let row=0;row<4;row++)for(let i=-5;i<=5;i++){
+      const rr=spanR*(.42+row*.050),x=ca*rr-sa*i*23,z=sa*rr+ca*i*23;
       const h=gridH(t,x,z);if(h<8||gridS(t,x,z)>.30||rwBlocked(is,x,z,38)||vegetationBlocked(rec,is,x,z))continue;
-      const type=(i===0&&row===1)?'cyp':'olive';
+      const type=((Math.abs(i)%4===0&&row!==0)||(i===0&&row===1))?'cyp':'olive';
       dummy.position.set(x,h-.5,z);dummy.rotation.set(0,rnd()*TAU,0);
-      const sc=.80+rnd()*.25;dummy.scale.set(sc,sc*(.92+rnd()*.18),sc);dummy.updateMatrix();
+      const sc=1.12+rnd()*.42;dummy.scale.set(sc,sc*(1.02+rnd()*.26),sc);dummy.updateMatrix();
       mats[type].push(dummy.matrix.clone());cols[type].push(plantTint(type,is,rnd));
     }
   }
@@ -90398,7 +90581,44 @@ function buildGreen(t,rec){
       rememberLandscapeLandmark(rec,is,'ancientTree',q.x,h,q.z);
     }
   }
+  /* Continuous forest canopy layer: fills the visual gap between isolated
+     near trees and terrain colour, while remaining one instanced draw call. */
+  const fm=[],fc=[],frnd=rngFor(is,43);
+  const forestMul=(biome===BIOME_WET||biome===BIOME_PINE)?1.55:(biome===BIOME_CULT||biome===BIOME_MED?1.32:.68);
+  const fWant=Math.round(clamp(spanR*spanR/6500,is.big?230:72,is.big?1180:390)*forestMul*((typeof IS_MOBILE!=='undefined'&&IS_MOBILE)?.44:1));
+  let fguard=0;
+  while(fm.length<fWant&&fguard<fWant*20){
+    fguard++;const a=frnd()*TAU,rr=Math.sqrt(frnd())*spanR*.84;
+    const x=Math.cos(a)*rr,z=Math.sin(a)*rr,h=gridH(t,x,z),sl=gridS(t,x,z);
+    if(h<8||h>is.h*.96||sl>.76||rwBlocked(is,x,z,42)||vegetationBlocked(rec,is,x,z))continue;
+    const wx=x+is.cx,wz=z+is.cz,ff=artForestField(is,wx,wz),mf=artMeadowField(is,wx,wz),cfld=artClearingField(is,wx,wz);
+    if(ff<.26||cfld>.92||(mf>.76&&ff<.54))continue;
+    const tm=terrainMaskLocal(is,x,z);if(tm&(TM_RUNWAY|TM_PASS|TM_SETTLEMENT|TM_COASTAL))continue;
+    dummy.position.set(x,h+.8,z);dummy.rotation.set(0,frnd()*TAU,0);
+    const sc=1.12+frnd()*.88;dummy.scale.set(sc*(1.05+frnd()*.18),sc*(1.00+frnd()*.18),sc*(1.03+frnd()*.20));dummy.updateMatrix();
+    fm.push(dummy.matrix.clone());fc.push(new THREE.Color().setRGB(.94+frnd()*.06,.95+frnd()*.05,.91+frnd()*.07));
+  }
+  /* Upper-slope canopy pass. It deliberately follows mountain-space rather
+     than the lowland grove centres, so forests climb the flanks instead of
+     forming only a green necklace around the beach. */
+  if(is.big&&is.dry<.64&&biome!==BIOME_VOLCANIC){
+    const sfWant=Math.round((typeof IS_MOBILE!=='undefined'&&IS_MOBILE)?190:1120),srnd=rngFor(is,47);
+    let sf=0,sg=0;
+    while(sf<sfWant&&sg<sfWant*18){
+      sg++;const u=-.62+srnd()*1.24,v=-.56+srnd()*1.12,q=terrainPlanPoint(is,u,v),x=q.x,z=q.z;
+      const h=gridH(t,x,z),sl=gridS(t,x,z);if(h<45||h>is.h*.91||sl>.86||rwBlocked(is,x,z,55)||vegetationBlocked(rec,is,x,z))continue;
+      const tm=terrainMaskLocal(is,x,z);if(tm&(TM_RUNWAY|TM_PASS|TM_SETTLEMENT|TM_COASTAL))continue;
+      const wx=x+is.cx,wz=z+is.cz,ff=artForestField(is,wx,wz),mf=artMeadowField(is,wx,wz),cfld=artClearingField(is,wx,wz);
+      if(cfld>.965||(mf>.90&&ff<.58))continue;
+      dummy.position.set(x,h+1.5,z);dummy.rotation.set(0,srnd()*TAU,0);
+      const sc=1.08+srnd()*.86;dummy.scale.set(sc*(1.08+srnd()*.18),sc*(1.04+srnd()*.18),sc*(1.06+srnd()*.20));dummy.updateMatrix();
+      fm.push(dummy.matrix.clone());fc.push(new THREE.Color().setRGB(.96,.98,.92));sf++;
+    }
+  }
   const ctr0=new THREE.Vector3(is.cx,0,is.cz), rad0=spanR*1.4+90;
+  const forestMass=addInstanced(G('forestCanopyMass',forestCanopyMassGeo),fm,fc,ctr0,rad0,rec,vegMat);
+  if(forestMass){forestMass.userData.vegType='pine';forestMass.userData.vegLOD='forestMass';forestMass.castShadow=false;forestMass.receiveShadow=false;}
+
   const clusteredPines=biome===BIOME_WET||biome===BIOME_PINE;
   const geos={pine:clusteredPines?groveClusterGeo:pineGeo,tall:tallPineGeo,alpine:alpinePineGeo,cyp:cypressGeo,olive:oliveGeo,
     windolive:windOliveGeo,palm:palmGeo,dead:deadTreeGeo,bush:bushGeo,coast:coastalBushGeo,
@@ -90408,16 +90628,20 @@ function buildGreen(t,rec){
   /* Mid-distance Wiesen-/Unterholzmasse: wenige breite Cluster sitzen an
      Hainrändern und in sanften Talflächen. Sie füllen genau die Lücke
      zwischen Terrainfarbe und den echten <95-m-Grashalmen. */
-  const mgm=[],mgc=[],mgWant=Math.round(clamp(spanR/46,10,52)*density);
+  /* FINAL MIDGROUND: the previous 12-30x scale turned 5-m foliage cards
+     into 60-170 m translucent walls. Those cards could fill the entire
+     low-flight view even though the underlying terrain/grass was correct.
+     Keep the same painterly bridge, but in small overlapping meadow clumps. */
+  const mgm=[],mgc=[],mgWant=Math.round(clamp(spanR/28,is.big?46:24,is.big?150:88)*density);
   let mgg=0;
-  while(mgm.length<mgWant&&mgg<mgWant*15){
-    mgg++;const gg=gc[(rnd()*gc.length)|0],a=rnd()*TAU,rr=.55+rnd()*.48;
+  while(mgm.length<mgWant&&mgg<mgWant*18){
+    mgg++;const gg=gc[(rnd()*gc.length)|0],a=rnd()*TAU,rr=.50+rnd()*.50;
     const ex=Math.cos(a)*rr*gg.rx,ez=Math.sin(a)*rr*gg.rz,ca=Math.cos(gg.a),sa=Math.sin(gg.a);
     const x=gg.x+ex*ca-ez*sa,z=gg.z+ex*sa+ez*ca,h=gridH(t,x,z),sl=gridS(t,x,z),tm=terrainMaskLocal(is,x,z);
-    if(h<8||sl>.30||rwBlocked(is,x,z,34)||vegetationBlocked(rec,is,x,z)||(tm&(TM_BARRIER|TM_RUNWAY)))continue;
+    if(h<8||sl>.34||rwBlocked(is,x,z,34)||vegetationBlocked(rec,is,x,z)||(tm&(TM_BARRIER|TM_RUNWAY)))continue;
     dummy.position.set(x,h+.08,z);dummy.rotation.set(0,rnd()*TAU,0);
-    const sc=3.8+rnd()*5.8;dummy.scale.set(sc,1.0+rnd()*.7,sc*(.70+rnd()*.45));dummy.updateMatrix();
-    mgm.push(dummy.matrix.clone());mgc.push(new THREE.Color().setHSL(biome===BIOME_DRY?.15:.27,.20+rnd()*.16,.54+rnd()*.13));
+    const sc=2.2+rnd()*3.8;dummy.scale.set(sc,.88+rnd()*.40,sc*(.78+rnd()*.34));dummy.updateMatrix();
+    mgm.push(dummy.matrix.clone());mgc.push(new THREE.Color().setHSL(biome===BIOME_DRY?.15:.27,.18+rnd()*.13,.57+rnd()*.10));
   }
   const mg=addInstanced(G('paintMidGroundcover',paintedMidGroundcoverGeo),mgm,mgc.map(paintedInstanceTint),ctr0,rad0,rec,paintedFoliageMat);
   if(mg){mg.userData.vegType='ground';mg.userData.vegLOD='midground';mg.castShadow=false;mg.receiveShadow=false;mg.visible=false;}
@@ -90429,9 +90653,12 @@ function buildGreen(t,rec){
         const mesh=addInstanced(G('veg_cactus',geos[type]),mats[type],cols[type],ctr0,rad0,rec,propMat);
         if(mesh){mesh.userData.vegType=type;mesh.userData.vegLOD='ground';}
       }else{
-        const pcols=cols[type].map(paintedInstanceTint);
-        const mesh=addInstanced(G('paint_low_'+type,()=>paintedLowPlantGeo(type)),mats[type],pcols,ctr0,rad0,rec,paintedFoliageMat);
-        if(mesh){mesh.userData.vegType=type;mesh.userData.vegLOD='ground';mesh.castShadow=false;mesh.receiveShadow=false;}
+        /* Low-flight readability wins over alpha-card density here. Grass and
+           flowers remain the painterly atlas foreground; bushes/ferns use their
+           existing small solid silhouettes so no near foliage card can become
+           a screen-filling wall. Tree crowns keep the dedicated foliage atlas. */
+        const mesh=addInstanced(G('solid_low_'+type,geos[type]),mats[type],cols[type],ctr0,rad0,rec,vegMat);
+        if(mesh){mesh.userData.vegType=type;mesh.userData.vegLOD='ground';mesh.castShadow=false;mesh.receiveShadow=true;}
       }
       return;
     }
@@ -90513,8 +90740,17 @@ function fracturedRockGeo(seed,face){
   g.computeVertexNormals();
   return geoCol(g,face?0xc4b79b:0xcabda1);
 }
-function cliffFaceGeoA(){return fracturedRockGeo(1.7,true);}
-function cliffFaceGeoB(){return fracturedRockGeo(4.1,true);}
+function cliffSlabGeo(seed){
+  let g=new THREE.IcosahedronGeometry(1,1).toNonIndexed();const a=g.attributes.position;
+  for(let i=0;i<a.count;i++){
+    let x=a.getX(i),y=a.getY(i),z=a.getZ(i);
+    const n=1+Math.sin((i+1)*(4.7+seed))*0.07+Math.sin((i+2)*(9.1+seed*.37))*0.04;
+    x*=n*1.35;y*=n*.92;z*=n*.18;a.setXYZ(i,x,y,z);
+  }
+  g.computeVertexNormals();return geoCol(g,0xe6cfb2);
+}
+function cliffFaceGeoA(){return cliffSlabGeo(1.7);}
+function cliffFaceGeoB(){return cliffSlabGeo(4.1);}
 function brokenBoulderGeoA(){return fracturedRockGeo(2.3,false);}
 function brokenBoulderGeoB(){return fracturedRockGeo(6.8,false);}
 
@@ -90535,7 +90771,7 @@ function lagoonShelfGeo(){const g=new THREE.CircleGeometry(1,12);g.rotateX(-Math
 function naturalNeedleGeo(){const g=fracturedRockGeo(9.3,true);g.scale(.72,1.55,.72);return g;}
 function buildSystemNaturalLandmarks(t,rec){
   const is=t.is;if(!is.big)return;
-  const rnd=rngFor(is,67),dummy=new THREE.Object3D(),kinds=['rockNeedle','guardianBoulder','ancientPine','screeBowl'];
+  const rnd=rngFor(is,67),dummy=new THREE.Object3D(),kinds=['ancientPine','rockNeedle','ancientPine','guardianBoulder','screeBowl'];
   const n=1+((ihash(is.ci,is.cj,12091)*3)|0),used=new Set();
   for(let li=0;li<n;li++){
     let kind=kinds[((ihash(is.ci,is.cj,12113+li*17)*kinds.length)|0)];
@@ -90557,7 +90793,13 @@ function buildSystemNaturalLandmarks(t,rec){
     }else if(kind==='guardianBoulder'){
       const m=new THREE.Mesh(G('naturalGuardian',brokenBoulderGeoB),propMat);m.position.set(is.cx+best.x,best.h+.4,is.cz+best.z);m.rotation.set((rnd()-.5)*.15,rnd()*TAU,(rnd()-.5)*.15);const s=9+rnd()*8;m.scale.set(s,7+rnd()*7,s*(.75+rnd()*.4));m.castShadow=true;m.receiveShadow=true;scene.add(m);rec.meshes.push(m);
     }else if(kind==='ancientPine'){
-      const m=new THREE.Mesh(G('naturalAncientPine',tallPineGeo),vegMat);m.position.set(is.cx+best.x,best.h-.5,is.cz+best.z);m.rotation.set(0,rnd()*TAU,is.tp.side*.08);const s=1.55+rnd()*.45;m.scale.set(s*1.12,s*1.28,s);m.castShadow=true;m.receiveShadow=true;scene.add(m);rec.meshes.push(m);
+      /* Markanter Schirm-/Pinienbaum als echter Vorder-/Mittelgrundanker. */
+      const grp=new THREE.Group();
+      const tr=new THREE.Mesh(G('naturalAncientPineTrunk',()=>paintedTreeTrunkGeo('pine',1)),paintedTrunkMat);
+      const cr=new THREE.Mesh(G('naturalAncientPineCrown',()=>paintedTreeFoliageGeo('pine',1)),paintedFoliageMat);
+      tr.castShadow=true;tr.receiveShadow=true;cr.castShadow=false;cr.receiveShadow=false;grp.add(tr,cr);
+      grp.position.set(is.cx+best.x,best.h-.5,is.cz+best.z);grp.rotation.set(0,rnd()*TAU,is.tp.side*.07);
+      const s=1.78+rnd()*.52;grp.scale.set(s*1.16,s*1.24,s*1.10);scene.add(grp);rec.meshes.push(grp);
     }else{
       const grp=new THREE.Group();grp.position.set(is.cx+best.x,best.h,is.cz+best.z);
       for(let j=0;j<6;j++){const m=new THREE.Mesh(G(j&1?'naturalScreeA':'naturalScreeB',j&1?brokenBoulderGeoA:brokenBoulderGeoB),propMat),a=j/6*TAU+rnd()*.25,r=6+rnd()*13,s=2.2+rnd()*4;m.position.set(Math.cos(a)*r,(rnd()-.5)*1.2,Math.sin(a)*r);m.rotation.y=rnd()*TAU;m.scale.set(s,s*.42,s*(.7+rnd()*.4));grp.add(m);}scene.add(grp);rec.meshes.push(grp);
@@ -90594,26 +90836,27 @@ function buildRocks(t,rec){
   /* Große Felswände: nur an echten Ridge/Barrier-Hängen, orientiert an
      der lokalen Gradientenrichtung. Wenige große Instanzen reichen für
      Schattenlinien, die schon aus 500-2000 m lesbar sind. */
-  const faceWant=Math.round(clamp(spanR/210,is.big?5:1,is.big?22:7));
+  const faceWant=Math.round(clamp(spanR/48,is.big?60:10,is.big?170:42));
   let fg=0;
   while(frm.length+fr2m.length<faceWant&&fg<faceWant*32){
     fg++;
     const a=rnd()*TAU,rr=spanR*(.30+rnd()*.55),x=Math.cos(a)*rr,z=Math.sin(a)*rr;
     const h=gridH(t,x,z),sl=gridS(t,x,z),tm=terrainMaskLocal(is,x,z);
-    if(h<28||sl<.42||rwBlocked(is,x,z,85)||!(tm&(TM_RIDGE|TM_BARRIER|TM_HIGHLAND)))continue;
+    if(h<24||sl<.34||rwBlocked(is,x,z,85)||!(tm&(TM_RIDGE|TM_BARRIER|TM_HIGHLAND)))continue;
     const d=18,gx=(gridH(t,x+d,z)-gridH(t,x-d,z))/(2*d),gz=(gridH(t,x,z+d)-gridH(t,x,z-d))/(2*d);
     dummy.position.set(x,h-3,z);
     dummy.rotation.set(0,Math.atan2(gz,gx)+Math.PI/2,(rnd()-.5)*.10);
-    const sx=10+rnd()*19,sy=13+rnd()*30,sz=3.5+rnd()*5.5;
+    const sx=54+rnd()*76,sy=36+rnd()*64,sz=7.0+rnd()*10.0;
     dummy.scale.set(sx,sy,sz);dummy.updateMatrix();
-    const col=new THREE.Color().setHSL(.095+(is.dry-.5)*.035,.10+rnd()*.08,.62+rnd()*.16);
+    const col=new THREE.Color().setHSL(.085+(is.dry-.5)*.025,.16+rnd()*.08,.80+rnd()*.11);
     if(rnd()<.55){frm.push(dummy.matrix.clone());frc.push(col);}else{fr2m.push(dummy.matrix.clone());fr2c.push(col);}
   }
 
+
   /* Vollständiger Küstenpass: derselbe Inselkörper wird lokal als Sand,
      Fels, Steilküste oder Lagunenküste gelesen. Keine neue Küstenphysik. */
-  for(let k=0;k<30;k++){
-    const a=(k/30+rnd()*.018)*TAU,kind=coastClassAt(t,is,a);rec.coastProfile[kind]++;
+  for(let k=0;k<42;k++){
+    const a=(k/42+rnd()*.014)*TAU,kind=coastClassAt(t,is,a);rec.coastProfile[kind]++;
     const shore=shoreLocal(t,a),ca=Math.cos(a),sa=Math.sin(a);
     if(kind==='sand')continue;
     if(kind==='lagoon'){
@@ -90626,8 +90869,8 @@ function buildRocks(t,rec){
     if(h<-10||h>14||rwBlocked(is,x,z,70))continue;
     if(kind==='cliff'){
       dummy.position.set(x,Math.max(1,h)+7+rnd()*8,z);dummy.rotation.set(0,a+Math.PI/2,(rnd()-.5)*.10);
-      const sc=5+rnd()*8;dummy.scale.set(sc,11+rnd()*18,3.2+rnd()*5.0);dummy.updateMatrix();
-      coastCliffM.push(dummy.matrix.clone());coastCliffC.push(new THREE.Color().setHSL(.10,.10+rnd()*.07,.53+rnd()*.14));
+      const sc=9+rnd()*12;dummy.scale.set(sc,15+rnd()*24,4.5+rnd()*6.0);dummy.updateMatrix();
+      coastCliffM.push(dummy.matrix.clone());coastCliffC.push(new THREE.Color().setHSL(.085,.16+rnd()*.07,.80+rnd()*.12));
     }else{
       dummy.position.set(x,Math.max(-1,h)+.5,z);dummy.rotation.set((rnd()-.5)*.25,rnd()*TAU,(rnd()-.5)*.25);
       const sc=1.8+rnd()*5.5;dummy.scale.set(sc*(.8+rnd()*.5),sc*.62,sc*(.75+rnd()*.6));dummy.updateMatrix();
@@ -90730,10 +90973,10 @@ function buildRocks(t,rec){
   addInstanced(G('rockStrata',rockStrataGeo),stm,stc,ctr,rad2,rec);
   addInstanced(G('rockBrokenA',brokenBoulderGeoA),coastm,coastc,ctr,rad2,rec);
   addInstanced(G('rockBrokenB',brokenBoulderGeoB),coast2m,coast2c,ctr,rad2,rec);
-  addInstanced(G('coastCliff',cliffFaceGeoA),coastCliffM,coastCliffC,ctr,rad2,rec);
+  {const cm=addInstanced(G('coastCliff',cliffFaceGeoA),coastCliffM,coastCliffC,ctr,rad2,rec,cliffMat);if(cm)cm.receiveShadow=false;}
   addInstanced(G('lagoonShelf',lagoonShelfGeo),shelfM,shelfC,ctr,rad2,rec);
-  addInstanced(G('cliffFaceA',cliffFaceGeoA),frm,frc,ctr,rad2,rec);
-  addInstanced(G('cliffFaceB',cliffFaceGeoB),fr2m,fr2c,ctr,rad2,rec);
+  {const cm=addInstanced(G('cliffFaceA',cliffFaceGeoA),frm,frc,ctr,rad2,rec,cliffMat);if(cm)cm.receiveShadow=false;}
+  {const cm=addInstanced(G('cliffFaceB',cliffFaceGeoB),fr2m,fr2c,ctr,rad2,rec,cliffMat);if(cm)cm.receiveShadow=false;}
   buildSystemNaturalLandmarks(t,rec);
   if(is.walls){
     const wm=[],wc=[]; let g2=0;
@@ -90889,7 +91132,8 @@ function buildVillage(t,rec,is,rnd,dummy,parts,spanR,pang,pr,px,pz){
         bm=[],bc=[], twm=[],twc=[], stm=[],stc=[],
         plm=[],plc=[], stlm=[],stlc=[], lam=[],lac=[],
         lrm=[],lrc=[], lcm=[],lcc=[], ivm=[],ivc=[], bqm=[],bqc=[], bkm=[],bkc=[], wnm=[],wnc=[],
-        glm=[],glc=[], ywm=[],ywc=[];
+        glm=[],glc=[], ywm=[],ywc=[],
+        vcypM=[],vcypC=[],volM=[],volC=[];
   const smokePts=[];                     // ein paar Kaminstellen fürs Rauchsprite-System
   rec.vegBlock=rec.vegBlock||[];
   const archetype=is.big?(is.relief>.42?'largeHillside':(rnd()<.48?'largeHarbor':'largePlaza'))
@@ -90902,7 +91146,7 @@ function buildVillage(t,rec,is,rnd,dummy,parts,spanR,pang,pr,px,pz){
     const c=new THREE.Color().setHSL(base[0]+(rnd()-.5)*.012,base[1]+rnd()*.045,base[2]+(rnd()-.5)*.045);
     if(zone==='harbor')c.offsetHSL(0,.01,.025); if(zone==='edge')c.offsetHSL(0,-.025,-.018); return c;
   }
-  const rows=is.big?9:6, gap=archetype.includes('Hillside')||archetype==='hillside'?(is.big?43:35):(is.big?52:41);
+  const rows=is.big?18:10, gap=archetype.includes('Hillside')||archetype==='hillside'?(is.big?35:29):(is.big?39:33);
   const wide=is.big?.98:.78;
   const climb=rows*gap;
 
@@ -90924,7 +91168,7 @@ function buildVillage(t,rec,is,rnd,dummy,parts,spanR,pang,pr,px,pz){
   const plazaPt=mainStreet[mainStreet.length-1];
 
   const alleys=[];
-  const nAlleys=is.big?8:(archetype==='fishing'?3:5);
+  const nAlleys=is.big?12:(archetype==='fishing'?5:7);
   for(let ai=0;ai<nAlleys;ai++){
     const along=.20+.60*((ai+.5)/nAlleys);
     const idx=clamp(Math.round(along*(mainStreet.length-1)),1,mainStreet.length-2);
@@ -90950,7 +91194,7 @@ function buildVillage(t,rec,is,rnd,dummy,parts,spanR,pang,pr,px,pz){
     return bag[(rnd()*bag.length)|0];
   }
   function placeHouse(x,z,face,sFrac,isMain,chain,offX,offZ){
-    const sc=.90+rnd()*.22;
+    const sc=1.32+rnd()*.44;
     const kind=pickKind(sFrac,isMain,gridS(t,x,z),chain.count||0);
     const h=gridH(t,x,z), sillY=h-.4;
     rec.vegBlock.push({x:x,z:z,r:15*sc});
@@ -91074,13 +91318,13 @@ function buildVillage(t,rec,is,rnd,dummy,parts,spanR,pang,pr,px,pz){
         const cx2=lerp(a.x,b.x,u), cz2=lerp(a.z,b.z,u);
         const sFrac=isMain?lerp(a.s!==undefined?a.s:0,b.s!==undefined?b.s:1,u):1;
         for(const side of [-1,1]){
-          const gapChance=archetype==='fishing'?.10:(archetype.includes('Hillside')||archetype==='hillside'?.08:.03);
+          const gapChance=archetype==='fishing'?.08:(archetype.includes('Hillside')||archetype==='hillside'?.06:.02);
           if(rnd()<gapChance){
             const offY=(isMain?12.0:9.2), yx=cx2+nX*offY*side, yz=cz2+nZ*offY*side, yh=gridH(t,yx,yz);
             if(yh>6&&!rwBlocked(is,yx,yz)&&!streamBlocked(rec,yx,yz,4)){dummy.position.set(yx,yh+.75,yz);dummy.rotation.set(0,Math.atan2(tX,tZ),0);dummy.scale.set(5.5+rnd()*3,1.45,.55);dummy.updateMatrix();ywm.push(dummy.matrix.clone());ywc.push(villageColor('edge'));}
             continue;
           }
-          if(rnd()<.12)continue;                       // Lücken, keine Perlenkette
+          if(rnd()<.045)continue;                      // kompakt, aber weiter mit einzelnen Luecken
           if(isMain&&sFrac>.90)continue;                // Platz am Straßenende freihalten
           const off=(isMain?10.5:8.0)+rnd()*3.4;
           const hx=cx2+nX*off*side, hz=cz2+nZ*off*side;
@@ -91206,6 +91450,45 @@ function buildVillage(t,rec,is,rnd,dummy,parts,spanR,pang,pr,px,pz){
   addInstanced(G('lamp',streetLampGeo),lam,lac,ctrT,radT,rec);
   if(smokePts.length){
     rec.smokePts=smokePts.map(function(p){ return {x:p.x+is.cx,y:p.y,z:p.z+is.cz}; });
+  }
+
+  /* WORLD TARGET · mediterrane Dorf-Landschaft: Zypressen geben den
+     Hanglinien vertikalen Rhythmus, Oliven verbinden die Hauscluster mit der
+     Umgebung. Alles sind vorhandene Instanced-Hybridbaeume; keine Shader- oder
+     Himmel-/Wasser-Aenderung. */
+  {
+    const treeCount=is.big?22:11;
+    for(let vi=0;vi<treeCount;vi++){
+      const q=mainStreet[clamp(1+((vi/(treeCount-1||1))*(mainStreet.length-3))|0,1,mainStreet.length-2)];
+      const q0=mainStreet[Math.max(0,mainStreet.indexOf(q)-1)],q1=mainStreet[Math.min(mainStreet.length-1,mainStreet.indexOf(q)+1)];
+      const dx=q1.x-q0.x,dz=q1.z-q0.z,dl=Math.hypot(dx,dz)||1;
+      const side=(vi&1)?1:-1,off=18+(vi%3)*5;
+      const x=q.x-dz/dl*off*side,z=q.z+dx/dl*off*side,h=gridH(t,x,z);
+      if(h<8||gridS(t,x,z)>.34||rwBlocked(is,x,z,24)||streamBlocked(rec,x,z,9))continue;
+      dummy.position.set(x,h-.5,z);dummy.rotation.set(0,rnd()*TAU,0);
+      const sc=.82+rnd()*.26;dummy.scale.set(sc,sc*(1.04+rnd()*.16),sc);dummy.updateMatrix();
+      vcypM.push(dummy.matrix.clone());vcypC.push(paintedInstanceTint(plantTint('cyp',is,rnd)));
+    }
+    const oliveWant=is.big?34:17;
+    let vg=0;
+    while(volM.length<oliveWant&&vg<oliveWant*12){
+      vg++;const a=pang+(rnd()-.5)*wide*1.65,rr=pr+55+rnd()*(is.big?150:90);
+      const x=Math.cos(a)*rr,z=Math.sin(a)*rr,h=gridH(t,x,z);
+      if(h<8||gridS(t,x,z)>.31||rwBlocked(is,x,z,28)||streamBlocked(rec,x,z,10)||vegetationBlocked(rec,is,x,z))continue;
+      dummy.position.set(x,h-.5,z);dummy.rotation.set(0,rnd()*TAU,0);
+      const sc=.88+rnd()*.30;dummy.scale.set(sc*(.94+rnd()*.14),sc,sc*(.92+rnd()*.16));dummy.updateMatrix();
+      volM.push(dummy.matrix.clone());volC.push(paintedInstanceTint(plantTint('olive',is,rnd)));
+    }
+    const tw=new THREE.Color(0xffffff),whiteCyp=vcypM.map(()=>tw.clone()),whiteOl=volM.map(()=>tw.clone());
+    function tagVillageTree(m,type,lod){if(m){m.userData.vegType=type;m.userData.vegLOD=lod;if(lod!=='near'){m.castShadow=false;m.receiveShadow=false;m.visible=false;}}return m;}
+    tagVillageTree(addInstanced(G('village_cyp_trunk',()=>paintedTreeTrunkGeo('cyp',0)),vcypM,whiteCyp,ctrT,radT,rec,paintedTrunkMat),'cyp','near');
+    tagVillageTree(addInstanced(G('village_cyp_crown',()=>paintedTreeFoliageGeo('cyp',0)),vcypM,vcypC,ctrT,radT,rec,paintedFoliageMat),'cyp','near');
+    tagVillageTree(addInstanced(G('village_cyp_mid',()=>midTreeSilhouetteGeo('cyp',0)),vcypM,vcypC,ctrT,radT,rec,vegMat),'cyp','mid');
+    tagVillageTree(addInstanced(G('village_cyp_far',()=>farTreeSilhouetteGeo('cyp',0)),vcypM,vcypC,ctrT,radT,rec,vegMat),'cyp','far');
+    tagVillageTree(addInstanced(G('village_olive_trunk',()=>paintedTreeTrunkGeo('olive',0)),volM,whiteOl,ctrT,radT,rec,paintedTrunkMat),'olive','near');
+    tagVillageTree(addInstanced(G('village_olive_crown',()=>paintedTreeFoliageGeo('olive',0)),volM,volC,ctrT,radT,rec,paintedFoliageMat),'olive','near');
+    tagVillageTree(addInstanced(G('village_olive_mid',()=>midTreeSilhouetteGeo('olive',0)),volM,volC,ctrT,radT,rec,vegMat),'olive','mid');
+    tagVillageTree(addInstanced(G('village_olive_far',()=>farTreeSilhouetteGeo('olive',0)),volM,volC,ctrT,radT,rec,vegMat),'olive','far');
   }
 
   // Marktstände an der Uferstraße
@@ -92434,6 +92717,100 @@ function updateStream(px,pz,ms){
   }
 }
 
+/* ============================================================
+   WORLD TARGET · feste Art-Director-Kameras
+   Die Perspektiven bleiben zwischen Iterationen reproduzierbar. Sie veraendern
+   weder Gameplay noch Himmel/Wasser/Shader und sind nur ueber die Konsole/API
+   aktivierbar: SommerwindArtDirector.goto(1..5), .restore().
+   ============================================================ */
+const SommerwindArtDirector=(function(){
+  let saved=null;
+  function anchor(){
+    let best=null,bs=-1e30;
+    for(const rec of live.values()){
+      const is=rec.is;if(!is||!is.big||is.kind==='volcano'||is.dry>.67)continue;
+      const scenic=is.kind==='pines'?480:(is.kind==='cliff'?340:(is.kind==='ridge'?290:(is.kind==='alps'?230:120)));
+      const lush=(1-is.dry)*360+(is.village?430:0)+scenic;
+      const score=is.h*.28+lush-Math.hypot(is.cx-pl.pos.x,is.cz-pl.pos.z)*.012;
+      if(score>bs){bs=score;best=is;}
+    }
+    if(best)return best;
+    if(homeIs)return homeIs;
+    const ai=Math.floor(pl.pos.x/CELL_A),aj=Math.floor(pl.pos.z/CELL_A);
+    for(let r=0;r<3&&!best;r++)for(let i=ai-r;i<=ai+r;i++)for(let j=aj-r;j<=aj+r;j++){const q=islandA(i,j);if(q){best=q;break;}}
+    return best;
+  }
+  function preset(n){
+    const is=anchor();if(!is)return null;
+    const a=is.tp?is.tp.settleA:0,ca=Math.cos(a),sa=Math.sin(a),r=is.r,viewR=is.r*(is.ax?Math.max(is.ax,is.az):1);
+    if(n===1){
+      /* Foreground reference camera: search ALL currently loaded large islands
+         for a broad meadow, rather than forcing the same heroic mountain used
+         by the long shots. This produces a repeatable meadow -> forest ->
+         mountain composition and also exercises the real near-grass system. */
+      let bestIs=null,bx=0,bz=0,bh=0,bs=-1e30;
+      const candidates=[];
+      for(const rec of live.values()){
+        const q=rec.is;if(q&&q.big&&q.kind!=='volcano'&&q.dry<.70)candidates.push(q);
+      }
+      if(!candidates.length)candidates.push(is);
+      for(let ci=0;ci<candidates.length;ci++){
+        const cand=candidates[ci],typeBonus=cand.kind==='pines'?1.15:(cand.kind==='cliff'?.55:(cand.kind==='ridge'?.45:0));
+        for(let iz=0;iz<13;iz++)for(let ix=0;ix<15;ix++){
+          const u=-.70+ix*.10,vv=-.60+iz*.10,q=terrainPlanPoint(cand,u,vv),x=cand.cx+q.x,z=cand.cz+q.z;
+          const h=heightAt(x,z),owner=hOwner;if(!owner||owner.key!==cand.key||owner.dry>=.64)continue;
+          const grassMax=Math.min(720,Math.max(400,owner.h*.62));
+          if(h<18||h>Math.min(grassMax,Math.max(360,cand.h*.70)))continue;
+          const sl=slopeAt(x,z,h),mf=artMeadowField(cand,x,z),ff=artForestField(cand,x,z),cf=artClearingField(cand,x,z),tm=terrainMaskAt(cand,x,z);
+          const bad=(tm&(TM_COASTAL|TM_SETTLEMENT|TM_RUNWAY|TM_BARRIER|TM_PASS))!==0;
+          if(bad||runwayUnder(x,z,200)||sl>.28||ff>.58||mf<.43)continue;
+          if(h>230&&!((mf>.43||cf>.62)&&ff<.79))continue;
+          const pth=Math.abs(fbm2(x*.0022+77,z*.0022+31,2)-.5);if(pth<.040)continue;
+          if(cand.stream&&islandStreamCorridor(cand,x,z)>.22)continue;
+          let localMax=sl,localVar=0,good=true;
+          const offs=[[34,0],[-34,0],[0,34],[0,-34],[24,24],[-24,-24],[48,0],[-48,0]];
+          for(let oi=0;oi<offs.length;oi++){
+            const xx=x+offs[oi][0],zz=z+offs[oi][1],hh=heightAt(xx,zz);if(hh<8){good=false;break;}
+            const ss=slopeAt(xx,zz,hh);localMax=Math.max(localMax,ss);localVar=Math.max(localVar,Math.abs(hh-h));
+          }
+          if(!good||localMax>.36||localVar>34)continue;
+          const fp=fbm2(x*.00145+83,z*.00145+37,2),vf=vnoise2(x*.0024+9,z*.0024+4,11);
+          /* Prefer lower, broad sunny shoulders: they give visible close grass
+             while still opening onto sea and distant island silhouettes. */
+          const coastish=1-clamp(Math.abs(h-125)/260,0,1);
+          const qscore=(1-localMax)*4.8+mf*4.6+cf*1.25-ff*2.5+fp*.8+vf*.45+typeBonus+coastish*1.4+(cand.village?.25:0)-h*.00025;
+          if(qscore>bs){bs=qscore;bestIs=cand;bx=x;bz=z;bh=h;}
+        }
+      }
+      if(!bestIs){bestIs=is;const aa=bestIs.tp?bestIs.tp.settleA:0;bx=bestIs.cx-Math.cos(aa)*bestIs.r*.30;bz=bestIs.cz-Math.sin(aa)*bestIs.r*.30;bh=Math.max(12,heightAt(bx,bz));}
+      /* A reference meadow shot must look DOWN the slope toward sea and
+         distant islands. Looking back into the island centre put the camera
+         directly against the mountain wall and made the valid meadow appear
+         like giant polygons. Stand slightly inland from the meadow and look
+         outward along its radial fall-line instead. */
+      let ox=bx-bestIs.cx,oz=bz-bestIs.cz,ol=Math.hypot(ox,oz)||1;ox/=ol;oz/=ol;
+      /* Stay directly above the verified meadow cell so foreground grass is
+         genuinely close to camera; the candidate search already rejects
+         runway/coast/barrier corridors in a generous radius. */
+      const px=bx,pz=bz,ph=bh;
+      return {p:[px,ph+11,pz],look:[bx+ox*1100,Math.max(34,bh+22),bz+oz*1100]};
+    }
+    if(n===2)return {p:[is.cx-ca*viewR*.82,Math.max(190,is.h*.28),is.cz-sa*viewR*.82],look:[is.cx,Math.max(100,is.h*.24),is.cz]};
+    if(n===3)return {p:[is.cx+sa*viewR*.92,Math.max(210,is.h*.30),is.cz-ca*viewR*.92],look:[is.cx,Math.max(95,is.h*.24),is.cz]};
+    if(n===4)return {p:[is.cx-ca*viewR*1.18,Math.max(235,is.h*.30),is.cz-sa*viewR*1.18],look:[is.cx+ca*r*.16,Math.max(100,is.h*.23),is.cz+sa*r*.16]};
+    return {p:[is.cx+ca*viewR*.98,Math.max(190,is.h*.27),is.cz+sa*viewR*.98],look:[is.cx,Math.max(85,is.h*.22),is.cz]};
+  }
+  function go(n){
+    const q=preset(clamp(n|0,1,5));if(!q)return false;
+    if(!saved)saved={p:camera.position.clone(),q:camera.quaternion.clone()};
+    camera.position.set(q.p[0],q.p[1],q.p[2]);camera.lookAt(q.look[0],q.look[1],q.look[2]);
+    return true;
+  }
+  function restore(){if(!saved)return false;camera.position.copy(saved.p);camera.quaternion.copy(saved.q);saved=null;return true;}
+  return {goto:go,restore:restore,preset:preset};
+})();
+window.SommerwindArtDirector=SommerwindArtDirector;
+
 /* Landschafts-Streaming oberhalb der Inselmeshes: entfernte Inseln behalten
    Terrain, Kueste, Bauten und markante Baum-Silhouetten. Kleines Unterholz
    wird erst im Tiefflug zugeschaltet. Gleichzeitig werden Regionen und
@@ -92457,14 +92834,15 @@ function updateLandscapeWorld(dt,px,py,pz){
     landscapeDiscoveryCd=2.6;saveSoon();
   }
   let found=null,foundD=1e18;
+  const viewGround=Math.max(0,heightAt(px,pz)),viewAgl=py-viewGround;
   for(const rec of live.values()){
     const dx=rec.is.cx-px,dz=rec.is.cz-pz,d2=dx*dx+dz*dz;
     const mobile=typeof IS_MOBILE!=='undefined'&&IS_MOBILE;
-    const farR=mobile?7600:9000,nearR=mobile?2200:3000,midR=mobile?4400:5600;
+    const farR=mobile?8400:10800,nearR=mobile?2400:3300,midR=mobile?5000:6500;
     const farTrees=d2>farR*farR;
     const dist=Math.sqrt(d2),nearH=mobile?170:240,midH=mobile?260:360;
-    const lowR=mobile?2550:3400,lowH=mobile?150:220;
-    const mgNear=mobile?550:700,mgFar=mobile?3500:4700,mgH=mobile?100:150;
+    const lowR=mobile?2850:3900,lowH=mobile?170:250;
+    const mgNear=mobile?420:560,mgFar=mobile?4300:5900,mgH=mobile?120:180;
     let lowVegOn=rec._lowVegOn;
     if(lowVegOn===undefined)lowVegOn=dist<lowR&&py<900;
     if(lowVegOn){if(dist>lowR+lowH||py>980)lowVegOn=false;}
@@ -92490,7 +92868,8 @@ function updateLandscapeWorld(dt,px,py,pz){
       if(lod==='near')m.visible=treeState==='near'&&py<1650;
       else if(lod==='mid')m.visible=treeState==='mid'&&py<2050;
       else if(lod==='far')m.visible=treeState==='far'&&!farTrees&&py<2400;
-      else if(lod==='midground')m.visible=midgroundOn;
+      else if(lod==='midground')m.visible=midgroundOn&&!(viewAgl<150&&dist<(mobile?2100:3000));
+      else if(lod==='forestMass')m.visible=dist>(mobile?820:1080)&&!(viewAgl<110&&dist<(mobile?1900:2600))&&!farTrees&&py<2300;
       else m.visible=LOW_PLANTS.has(type)?lowVegOn:!farTrees;
     }
     if(!ST.running||!pl.alive||landscapeDiscoveryCd>0||!rec.landmarks)continue;
@@ -108708,7 +109087,21 @@ const HOME={x:0,z:0};
 function findStart(){
   // Jede Sitzung beginnt anderswo in der Welt
   const oi=Math.floor((Math.random()*2-1)*40), oj=Math.floor((Math.random()*2-1)*40);
-  let best=null,bd=1e18;
+  let best=null,bestScore=-1e30,bd=1e18;
+  /* FINAL WORLD PASS: choose the strongest nearby scenic home, not merely
+     the first acceptable ring. This makes the first normal gameplay view a
+     representative mountainous Mediterranean composition. */
+  for(let r=0;r<=12;r++){
+    for(let i=-r;i<=r;i++)for(let j=-r;j<=r;j++){
+      if(Math.max(Math.abs(i),Math.abs(j))!==r)continue;
+      const is=islandA(oi+i,oj+j);if(!is||!is.village||is.kind==='volcano'||is.dry>.62)continue;
+      const scenic=(is.kind==='cliff'||is.kind==='ridge'||is.kind==='pines');
+      if(!scenic)continue;
+      const typeBonus=is.kind==='pines'?190:(is.kind==='cliff'?145:80);
+      const score=is.h*1.12+is.r*.42+(1-is.dry)*420-r*22+typeBonus;
+      if(score>bestScore){bestScore=score;best=is;}
+    }
+  }
   for(let r=0;r<=5&&!best;r++){          // am liebsten Bucht, Bahn und Stadt zusammen
     for(let i=-r;i<=r;i++)for(let j=-r;j<=r;j++){
       if(Math.max(Math.abs(i),Math.abs(j))!==r)continue;
