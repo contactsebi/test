@@ -98237,8 +98237,8 @@ function waveH(x,z,t,gh){
   const sw=sw0+c*1.35;
   return sw*(SHORE_WAVE_MIN+(1-SHORE_WAVE_MIN)*sh)-(1-sh)*.30;
 }
-function settleContactPose(dt,contactIdle,pitchY){
-  if(!contactIdle)return;
+function settleContactPose(dt,contactStable,pitchY,allowYaw){
+  if(!contactStable)return;
   const k=1-Math.exp(-dt*11);
   _contactF.set(0,0,-1).applyQuaternion(pl.q);
   const hx=Math.hypot(_contactF.x,_contactF.z);
@@ -98250,8 +98250,15 @@ function settleContactPose(dt,contactIdle,pitchY){
   _contactM4.makeBasis(_contactR,_contactU,_contactBack);
   _contactQ.setFromRotationMatrix(_contactM4);
   pl.q.slerp(_contactQ,k).normalize();
-  pl.w.multiplyScalar(Math.exp(-dt*18));
-  if(pl.w.lengthSq()<2.5e-6)pl.w.set(0,0,0);
+  /* Beim Drehen im Stand bleibt ausschließlich Gier frei. Der alte Park-Lock
+     dämpfte entweder alle Achsen oder gar keine; dadurch konnten Seitenwind,
+     FBW-Reste und Kontaktkorrekturen beim Lenken wieder Roll/Pitch anregen. */
+  const damp=Math.exp(-dt*18);
+  pl.w.x*=damp;pl.w.z*=damp;
+  if(!allowYaw)pl.w.y*=damp;
+  if(Math.abs(pl.w.x)<.0016)pl.w.x=0;
+  if(Math.abs(pl.w.z)<.0016)pl.w.z=0;
+  if(!allowYaw&&Math.abs(pl.w.y)<.0016)pl.w.y=0;
   pl.vel.x*=Math.exp(-dt*16);pl.vel.z*=Math.exp(-dt*16);
   if(pl.vel.x*pl.vel.x+pl.vel.z*pl.vel.z<.0016){pl.vel.x=0;pl.vel.z=0;}
 }
@@ -98672,13 +98679,14 @@ function flight(dt,t){
   _t1.copy(pl.vel).sub(curWind);
   const V=_t1.length(); pl.v=pl.vel.length(); pl.ias=V*Math.sqrt(dr);
   const contactHV=Math.hypot(pl.vel.x,pl.vel.z);
-  /* Echte Parkruhe: Sobald die Maschine ohne Gas und ohne Steuereingabe fast
-     steht, sollen weder Wind-Aerodynamik noch Reglerreste den Kontakt mit
-     Wasser/Bahn zu einer kleinen Dauerschwingung anregen. Oberhalb von
-     Schrittgeschwindigkeit oder sobald der Pilot Gas/Knüppel gibt, ist diese
-     Klammer vollständig weg und die normale Physik übernimmt unverändert. */
-  const contactIdle=(pl.ground||pl.water)&&contactHV<1.60&&pl.thr<.06&&
-    Math.abs(pl.cmdP)<.07&&Math.abs(pl.cmdR)<.07;
+  /* Kontaktstabilität hat zwei Zustände: contactStable hält Roll/Pitch und
+     Windkräfte auch während einer Drehung im Stand ruhig; contactIdle ist der
+     vollständig geparkte Spezialfall und dämpft zusätzlich die Gierachse.
+     Mit Gas oder oberhalb Schrittgeschwindigkeit greift unverändert die normale
+     Taxi-/Wasser-/Flugphysik. */
+  const contactStable=(pl.ground||pl.water)&&contactHV<1.85&&pl.thr<.06&&Math.abs(pl.cmdP)<.07;
+  const contactIdle=contactStable&&Math.abs(pl.cmdR)<.07;
+  const contactTurning=contactStable&&!contactIdle;
   const T=AC.eta*power/Math.sqrt(V*V+AC.Vc*AC.Vc);
   pl.thrust=T;
   const propA=Math.PI*AC.propD*AC.propD/4;
@@ -98699,7 +98707,7 @@ function flight(dt,t){
   const post=1.04*Math.sin(2*alpha)+.10;
   const stallWidth=.16*(AC.stallSoftness||1);
   const bl=smoothstep(AC.aStall,AC.aStall+stallWidth,Math.abs(alpha));
-  let CL=lerp(lin,post,bl)*(1+.09*(1-ge))*(1-airDamage.wing*.12); pl.stall=contactIdle?0:bl;
+  let CL=lerp(lin,post,bl)*(1+.09*(1-ge))*(1-airDamage.wing*.12); pl.stall=contactStable?0:bl;
   const CD=AC.CD0+AC.ke*CL*CL*ge+1.25*Math.pow(Math.sin(alpha),2)*bl
           +.09*Math.abs(Math.sin(beta))+.020*airDamage.wing;
   const L=qd*AC.S*CL, D=qd*AC.S*CD, Y=qd*AC.S*(-AC.CYb*beta);
@@ -98714,9 +98722,9 @@ function flight(dt,t){
     .addScaledVector(_rgt,Y)
     .addScaledVector(_fwd,T);
   _F.y-=AC.m*9.81;
-  pl.g=contactIdle?1:L/(AC.m*9.81);
+  pl.g=contactStable?1:L/(AC.m*9.81);
   const safeVne=AC.vne*(1-airDamage.wing*.12);
-  pl.over=contactIdle?0:smoothstep(safeVne-8,safeVne+14,V);
+  pl.over=contactStable?0:smoothstep(safeVne-8,safeVne+14,V);
   // Längeres Überziehen der beschädigten Struktur verschärft den Zustand
   // langsam. Kurze Spitzen bleiben folgenlos; der Pilot bekommt Zeit, Fahrt
   // und Last zu reduzieren.
@@ -98741,10 +98749,9 @@ function flight(dt,t){
     }
     _F.y+=AC.m*9.81*.62;
   }
-  if(contactIdle){
-    /* Kontaktkräfte tragen das Gewicht bereits. Im echten Stillstand wird der
-       verbleibende Wind-/Propeller-Kraftrest nicht mehr in Mikrobewegung
-       übersetzt; dadurch kann das Fahrwerk/der Schwimmer stabil ruhen. */
+  if(contactStable){
+    /* Kontaktkräfte tragen das Gewicht bereits. Auch beim reinen Drehen auf
+       der Stelle darf Seitenwind keine horizontale Mikrobewegung erzeugen. */
     _F.set(0,0,0);
   }
 
@@ -98821,10 +98828,10 @@ function flight(dt,t){
     const waterAeroMoment=.10+.90*smoothstep(4.5,23,Math.hypot(pl.vel.x,pl.vel.z));
     _M.multiplyScalar(waterAeroMoment);
   }
-  if(contactIdle){
-    /* Am echten Stillstand keine aerodynamische Daueranregung aus Seitenwind,
-       FBW-Integratoren oder Propwash. Das betrifft ausschließlich den
-       geparkten Kontaktzustand, nicht Taxi/Startlauf/Gleitfahrt. */
+  if(contactStable){
+    /* Auch während einer Standdrehung bleiben aerodynamische Roll-/Pitch-
+       Anregungen und FBW-Integratoren aus. Die gewünschte Gier kommt weiter
+       ausschließlich aus der Boden-/Wasserlenkung weiter unten. */
     _M.set(0,0,0);pl.rI=0;pl.qI=0;pl.ail=0;pl.elev=0;pl.rud=0;
   }
 
@@ -98852,7 +98859,9 @@ function flight(dt,t){
   pl.w.y+=(_M.y-(AC.Ix-AC.Iz)*wz*wx)/AC.Iy*dt;
   pl.w.z+=(_M.z-(AC.Iy-AC.Ix)*wx*wy)/AC.Iz*dt;
   pl.w.multiplyScalar(Math.max(0,1-.10*(AC.angularDamping||1)*dt));
-  if(contactIdle)pl.w.multiplyScalar(Math.exp(-dt*24));
+  if(contactStable){
+    const cd=Math.exp(-dt*24);pl.w.x*=cd;pl.w.z*=cd;if(contactIdle)pl.w.y*=cd;
+  }
   pl.w.clampLength(0,4.5);
 
   /* --- Trimmung läuft von selbst nach, wenn der Knüppel frei ist --- */
@@ -98860,13 +98869,17 @@ function flight(dt,t){
     pl.trim=clamp(pl.trim+clamp(-pl.vel.y*.022-pl.w.x*.55,-1,1)*dt*1.05,-.50,.50);
   }
   /* --- Milde Lagehilfe, abschaltbar --- */
-  if(assistOn&&!fbwOn){
+  if(assistOn&&!fbwOn&&!contactStable){
     const auth=clamp((V-16)/32,0,1);
     const upright=smoothstep(-.05,.5,_up.y);
     const noRoll=1-Math.min(1,Math.abs(pl.ail)*2.4);
     pl.w.z+=(-clamp(bankA,-1.2,1.2)*.88-pl.w.z*.50)*noRoll*auth*upright*dt;
   }
 
+  /* Harte Achsentrennung im Park-/Pivotzustand: Vor der Quaternion-Integration
+     dürfen nur Gieranteile übrig sein. Boden- und Wasserlenkung setzen w.y
+     weiterhin normal; Roll/Pitch können beim Drehen nicht mehr zurückkoppeln. */
+  if(contactStable){pl.w.x=0;pl.w.z=0;}
 
   _hq.set(pl.w.x*dt*.5,pl.w.y*dt*.5,pl.w.z*dt*.5,1);
   pl.q.multiply(_hq).normalize();
@@ -98906,7 +98919,7 @@ function flight(dt,t){
       while(e2>Math.PI)e2-=TAU; while(e2<-Math.PI)e2+=TAU;
       pl.w.y+=(e2*4.2-pl.w.y*3.0)*dt*3;
     }else pl.gHdg=Math.atan2(_fwd.x,_fwd.z);
-    settleContactPose(dt,contactIdle,0);
+    settleContactPose(dt,contactStable,0,contactTurning);
     if(L>AC.m*9.81*1.02&&V>28&&pl.vel.y>.35){ pl.ground=false; pl.grace=1.0;
       pl.vel.y=Math.min(pl.vel.y,1.6); }
     if(hv>26&&Math.random()<dt*10)
@@ -98918,7 +98931,7 @@ function flight(dt,t){
     // in jedem Physikschritt hart auf die momentane Wellenhöhe zu schnappen.
     const waterTargetY=wh+1.45;
     if(!isFinite(pl.waterY))pl.waterY=waterTargetY;
-    pl.waterY=lerp(pl.waterY,waterTargetY,1-Math.exp(-dt*(contactIdle?.75:(hv<2?2.35:5.5))));
+    pl.waterY=lerp(pl.waterY,waterTargetY,1-Math.exp(-dt*(contactStable?.75:(hv<2?2.35:5.5))));
     pl.pos.y=pl.waterY;
     if(!overSea){
       const hvS=Math.hypot(pl.vel.x,pl.vel.z);
@@ -98952,7 +98965,7 @@ function flight(dt,t){
     // Wasserruder-/Rumpfträgheit, die Steuerung wird sanfter statt hart abzuschalten.
     pl.w.y+=(-pl.cmdR*1.55*(AC.waterYaw||1)*clamp(1-hv/70,.28,1)-pl.w.y*2.6*(AC.waterPlaning||1))*dt*3;
     pl.w.y-=airDamage.floatBias*airDamage.floats*clamp(hv/28,0,1)*dt*.24;
-    settleContactPose(dt,contactIdle,.025);
+    settleContactPose(dt,contactStable,.025,contactTurning);
     if(hv>5&&Math.random()<dt*(18+hv*1.6)){
       const sp=clamp(hv/26,0,1);
       emit(pl.pos.x-_fwd.x*4.5+(Math.random()-.5)*5,1.6,pl.pos.z-_fwd.z*4.5+(Math.random()-.5)*5,
@@ -110718,8 +110731,16 @@ function mapEndDrag(ev){
       mapSelectedIsland=islandHit.is;
       setMapUITab('targets',true);
       renderMapDetail();drawMapFrame();
+      /* Ein direkter Tipp auf eine bereits besuchte, erreichbare Insel öffnet
+         sofort das Schnellreise-Fenster. Das kleine Flugzeug-Symbol bleibt nur
+         ein zusätzlicher Shortcut; die Insel selbst ist jetzt der primäre Hit. */
+      const ih=islandHit.is,home=String(ih.key)===String(SAVE.home),known=home||!!(SAVE.visited&&SAVE.visited[ih.key]);
+      if(known&&(ih.rw||ih.hb))mapFastTravelTap(ih);
     }
-    else if(hit)mapFastTravelTap(hit.is);
+    else if(hit){
+      mapSelectedIsland=hit.is;setMapUITab('targets',true);renderMapDetail();drawMapFrame();
+      mapFastTravelTap(hit.is);
+    }
   }
 }
 el('mapCv').addEventListener('pointerup',mapEndDrag);
@@ -110775,10 +110796,13 @@ function mapFastTravelTap(is){
       if(!performMapFastTravel(is))say('Dort ist gerade kein sicheres Ankommen möglich.');
     },'Reisen');
   }else{
-    if(SAVE.coins<FASTTRAVEL_PRICE){say('Für die Schnellreise nach '+is.name+' fehlen noch '+(FASTTRAVEL_PRICE-SAVE.coins)+' Münzen.');return;}
+    if(SAVE.coins<FASTTRAVEL_PRICE){
+      confirmBuy('Schnellreise nach '+is.name+' kostet einmalig '+FASTTRAVEL_PRICE+' Münzen. Dir fehlen noch '+(FASTTRAVEL_PRICE-SAVE.coins)+' Münzen.',function(){},'Noch nicht verfügbar');
+      return;
+    }
     confirmBuy('Schnellreise nach '+is.name+' für '+FASTTRAVEL_PRICE+' Münzen dauerhaft freischalten und direkt reisen?',function(){
       SAVE.coins-=FASTTRAVEL_PRICE;(SAVE.fastTravel=SAVE.fastTravel||{})[is.key]=true;
-      queueTip('fastTravelBuy',{eyebrow:'Freigeschaltet',title:'Schnellreise bereit',pages:['Dieses Ziel ist jetzt dauerhaft freigeschaltet. Auf der Karte kannst du künftig entweder das grüne Flugzeug-Symbol oder im Zielblatt direkt „Schnellreise“ wählen.']});
+      queueTip('fastTravelBuy',{eyebrow:'Freigeschaltet',title:'Schnellreise bereit',pages:['Dieses Ziel ist jetzt dauerhaft freigeschaltet. Auf der Karte kannst du künftig die Insel selbst, das Flugzeug-Symbol oder im Zielblatt „Schnellreise“ wählen.']});
       if(!performMapFastTravel(is)){saveNow();say('Freigeschaltet — die Reise selbst war an diesem Ziel gerade nicht sicher möglich.');}
     },'Freischalten & reisen');
   }
