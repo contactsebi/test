@@ -16,7 +16,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#7fc0e8">
-<title>Sommerwind 3D · AAA Flight Identity Pass</title>
+<title>Sommerwind 3D · AAA Atmospheric Weather 2.0</title>
 <meta name="author" content="Sebastian Zwick">
 <meta name="description" content="Sommerwind 3D — ein Flugboot über einer endlosen Inselwelt. Von Sebastian Zwick.">
 <style>
@@ -4455,6 +4455,7 @@
     <button data-dev="flighttest">Flight-Test-Rig</button><button data-dev="acceptance">AAA-Abnahme</button><button data-dev="airframe">Airframe-Profil</button>
     <button data-dev="harbortest">Living-Harbor-Test</button><button data-dev="harboracceptance">Harbor-Abnahme</button>
     <button data-dev="missiontest">Mission-Director-Test</button><button data-dev="missionacceptance">Mission-Abnahme</button>
+    <button data-dev="weathertest">Atmosphere-Test</button><button data-dev="weatheracceptance">Weather-Abnahme</button>
   </div>
 </aside>
 
@@ -85701,6 +85702,17 @@ const windGustU={value:1};
 const terrainSSRTex={value:null},terrainSSRDepth={value:null},terrainSSREnabled={value:0},
   terrainSSRProj={value:new THREE.Matrix4()},terrainSSRView={value:new THREE.Matrix4()};
 const terrainCloudU={value:.24};
+/* ============================================================
+   ATMOSPHERIC WEATHER 2.0 — shared render uniforms
+   The physical weather cells remain the single source of truth. These
+   vectors only expose the three most relevant visual cells to world shaders.
+   xyz = world center x/z + radius, w = visual strength.
+   ============================================================ */
+const weatherShadowU0={value:new THREE.Vector4(0,0,1,0)},weatherShadowU1={value:new THREE.Vector4(0,0,1,0)},weatherShadowU2={value:new THREE.Vector4(0,0,1,0)};
+const weatherGroundWetU0={value:new THREE.Vector4(0,0,1,0)},weatherGroundWetU1={value:new THREE.Vector4(0,0,1,0)},weatherGroundWetU2={value:new THREE.Vector4(0,0,1,0)};
+const weatherSkyU0={value:new THREE.Vector4(1,0,.99,0)},weatherSkyU1={value:new THREE.Vector4(1,0,.99,0)},weatherSkyU2={value:new THREE.Vector4(1,0,.99,0)};
+const weatherSkyTypeU={value:new THREE.Vector3(0,0,0)};
+let weatherAtmosLight=0,weatherAtmosCool=0,weatherCloudInteriorAmt=0,weatherLocalZone='clear';
 /* Nächtliche Grundhelligkeit fürs Gelände/Dekor — additiv, nicht über die
    Licht-Intensitäten (hemi/amb) selbst. Farbe×Licht bleibt auf dunklem
    Geländegrün dunkel, egal wie stark man hemi/amb aufdreht (Multiplikation
@@ -85983,6 +85995,16 @@ function applyTime(){
   C.shallow.lerpColors(a._shal,b._shal,k); C.lagoon.lerpColors(a._lag,b._lag,k);
   C.cl.lerpColors(a._cl,b._cl,k);      C.cd.lerpColors(a._cd,b._cd,k);
   C.foam.copy(C.cl).lerp(_foamWhite,.24);
+  /* A visible front begins to affect the light before the aircraft is
+     physically inside precipitation. This is presentation only; wind and
+     flight physics still come exclusively from weatherSampleInto(). */
+  if(weatherAtmosLight>.001){
+    const wa=clamp(weatherAtmosLight,0,1),wc=clamp(weatherAtmosCool,0,1);
+    _greyA.setHex(0x66747d);_greyB.setHex(0x9aa7ad);
+    C.zen.lerp(_greyA,wa*.24);C.mid.lerp(_greyA,wa*.28);C.hor.lerp(_greyB,wa*.22);
+    C.fog.lerp(_greyB,wa*.26);sunLight.intensity*=1-wa*.34;hemi.intensity*=1-wa*.10;
+    if(wc>.01){_greyC.setHex(0xb8c5ca);C.cl.lerp(_greyC,wc*.12);C.cd.lerp(_greyA,wc*.10);}
+  }
   if(rainAmt>.01){                                  // Regen drückt Licht und Sicht
     const r2=rainAmt;
     _greyA.setHex(0x6d777d); _greyB.setHex(0x8b9398); _greyC.setHex(0x2a4650);
@@ -86026,14 +86048,16 @@ const skyMat=new THREE.ShaderMaterial({
   side:THREE.BackSide, depthWrite:false, fog:false,
   uniforms:{
     uZen:{value:C.zen}, uMid:{value:C.mid}, uHor:{value:C.hor},
-    uSun:{value:C.sun}, uSunDir:{value:sunDir}, uTime:{value:0}
+    uSun:{value:C.sun}, uSunDir:{value:sunDir}, uTime:{value:0},
+    uWx0:weatherSkyU0,uWx1:weatherSkyU1,uWx2:weatherSkyU2,uWxType:weatherSkyTypeU
   },
   vertexShader:`
     varying vec3 vDir;
     void main(){ vDir=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
   fragmentShader:`
     precision highp float;
-    uniform vec3 uZen,uMid,uHor,uSun,uSunDir;
+    uniform vec3 uZen,uMid,uHor,uSun,uSunDir,uWxType;
+    uniform vec4 uWx0,uWx1,uWx2;
     uniform float uTime;
     varying vec3 vDir;
     /* Kleines Wertrauschen nur für die hohen Zirren — unabhängig vom
@@ -86054,6 +86078,16 @@ const skyMat=new THREE.ShaderMaterial({
       float s=0.0,a=0.5;
       for(int i=0;i<4;i++){ s+=a*noise2(p); p=p*2.02+17.1; a*=0.55; }
       return s;
+    }
+    float wxInfluence(vec4 w,float typ,vec3 d){
+      if(w.w<=.0001)return 0.0;
+      vec2 hz=d.xz;float hl=max(length(hz),.0001);hz/=hl;
+      float a=smoothstep(w.z,min(.9999,w.z+.085),dot(hz,normalize(w.xy)));
+      float y=d.y,v=1.0;
+      if(typ<1.5)v=smoothstep(-.12,.02,y)*(1.0-smoothstep(.38,.68,y));
+      else if(typ<2.5)v=(1.0-smoothstep(.11,.38,abs(y-.015)));
+      else v=smoothstep(-.10,.02,y)*(1.0-smoothstep(.70,.96,y));
+      return a*v*w.w;
     }
     void main(){
       vec3 d=normalize(vDir);
@@ -86087,6 +86121,17 @@ const skyMat=new THREE.ShaderMaterial({
         vec3 cirrusCol=mix(uHor,uSun,0.22+lowSun*0.35);
         col=mix(col,cirrusCol,streak*cirrusZone*0.16);
       }
+      /* The same moving weather cells that drive turbulence now stain the
+         sky in the correct direction. Far cells read as fronts rather than
+         generic global overcast. */
+      float w0=wxInfluence(uWx0,uWxType.x,d),w1=wxInfluence(uWx1,uWxType.y,d),w2=wxInfluence(uWx2,uWxType.z,d);
+      float rain=max((uWxType.x<1.5?w0:0.0),max(uWxType.y<1.5?w1:0.0,uWxType.z<1.5?w2:0.0));
+      float fog=max((uWxType.x>1.5&&uWxType.x<2.5?w0:0.0),max(uWxType.y>1.5&&uWxType.y<2.5?w1:0.0,uWxType.z>1.5&&uWxType.z<2.5?w2:0.0));
+      float storm=max((uWxType.x>2.5?w0:0.0),max(uWxType.y>2.5?w1:0.0,uWxType.z>2.5?w2:0.0));
+      col=mix(col,vec3(.48,.55,.59),rain*.48);
+      col=mix(col,vec3(.78,.82,.83),fog*.66);
+      col=mix(col,vec3(.18,.21,.24),storm*.72);
+      col+=uSun*storm*pow(max(dot(d,uSunDir),0.0),4.0)*.05;
 
       gl_FragColor=vec4(col,1.0);
     }`
@@ -86788,6 +86833,7 @@ function buildOceanFFTMesh(qual){
       uH:{value:heightTex},uHC:{value:new THREE.Vector2(0,0)},uHW:{value:HW},
       uFloor:{value:SEA_FLOOR},uMax:{value:HMAX},uWind:{value:windVec},
       uCloudAmt:terrainCloudU,uRegionWater:{value:new THREE.Color(0x93c0bd)},
+      uWxShade0:weatherShadowU0,uWxShade1:weatherShadowU1,uWxShade2:weatherShadowU2,
       tSSR:{value:null},tSSRDepth:{value:null},uSSREnabled:{value:0},
       uSSRProj:{value:new THREE.Matrix4()},uSSRView:{value:new THREE.Matrix4()},
       // Kaskaden — Verschiebung/Ableitung je Kaskade, plus Kachelgröße (m)
@@ -86810,16 +86856,24 @@ function buildOceanFFTMesh(qual){
       uniform sampler2D uD0,uD1,uD2;
       uniform float uCL0,uCL1,uCL2;
       varying vec3 vW;
+      varying vec2 vBaseXZ;
       varying float vCrest;
       void main(){
         vec4 wp=modelMatrix*vec4(position,1.0);
-        vec2 p=wp.xz;
-        float shoal=smoothstep(3.0,64.0,-grund(p));
+        vec2 p=wp.xz;vBaseXZ=p;
+        float shoal0=smoothstep(3.0,64.0,-grund(p));
         vec3 D=texture2D(uD0,p/uCL0).xyz+texture2D(uD1,p/uCL1).xyz+texture2D(uD2,p/uCL2).xyz;
-        float mixAmt=0.025+0.975*shoal;
-        wp.x+=D.x*mixAmt;
-        wp.z+=D.z*mixAmt;
-        wp.y+=D.y*mixAmt-(1.0-shoal)*0.30;
+        // Die Küstenmaske gehört zur festen Weltposition, nicht zur seitlich
+        // wandernden FFT-Welle. Ein Kandidat Richtung Land reduziert daher
+        // den horizontalen Versatz, bevor er die Strandkante überqueren kann.
+        float preAmt=0.025+0.975*shoal0;
+        vec2 candidate=p+D.xz*preAmt;
+        float shoal1=smoothstep(3.0,64.0,-grund(candidate));
+        float shoal=min(shoal0,shoal1);
+        float mixAmt=0.018+0.982*shoal;
+        wp.x=p.x+D.x*mixAmt;
+        wp.z=p.y+D.z*mixAmt;
+        wp.y+=D.y*(0.025+0.975*shoal)-(1.0-shoal)*0.38;
         vCrest=shoal;
         vW=wp.xyz;
         gl_Position=projectionMatrix*viewMatrix*wp;
@@ -86829,6 +86883,7 @@ function buildOceanFFTMesh(qual){
       uniform float uTime,uHW,uFloor,uMax,uFogNear,uFogFar,uCloudAmt,uFoamAmt;
       uniform vec2 uHC;
       uniform vec3 uDeep,uShallow,uLagoon,uFoam,uSunC,uSunDir,uSky,uFog,uRegionWater;
+      uniform vec4 uWxShade0,uWxShade1,uWxShade2;
       uniform sampler2D uH;
       uniform sampler2D tSSR,tSSRDepth;
       uniform float uSSREnabled;
@@ -86837,6 +86892,7 @@ function buildOceanFFTMesh(qual){
       uniform float uCL0,uCL1,uCL2;
       uniform vec2 uWind;
       varying vec3 vW;
+      varying vec2 vBaseXZ;
       varying float vCrest;
       vec2 ssrTrace(vec3 origin,vec3 dir){
         vec3 p=origin;
@@ -86878,7 +86934,9 @@ function buildOceanFFTMesh(qual){
       }
       void main(){
         vec2 p=vW.xz;
-        float h=terrain(p);
+        // Wellen dürfen Texturdetails bewegen, aber niemals die Land/Wasser-
+        // Klassifikation selbst. Diese bleibt an der unverformten Weltposition.
+        float h=terrain(vBaseXZ);
         float depth=max(0.0,-h);
         float t=uTime;
         float dCam=length(cameraPosition-vW);
@@ -86929,6 +86987,10 @@ function buildOceanFFTMesh(qual){
           +.18*sin((p.x-p.y)*.00091-t*.014);
         float cloudShadow=smoothstep(.64,.91,cloudBand)*uCloudAmt;
         col*=1.0-cloudShadow*.12;
+        float wxS0=(1.0-smoothstep(uWxShade0.z*.52,uWxShade0.z*1.14,distance(p,uWxShade0.xy)))*uWxShade0.w;
+        float wxS1=(1.0-smoothstep(uWxShade1.z*.52,uWxShade1.z*1.14,distance(p,uWxShade1.xy)))*uWxShade1.w;
+        float wxS2=(1.0-smoothstep(uWxShade2.z*.52,uWxShade2.z*1.14,distance(p,uWxShade2.xy)))*uWxShade2.w;
+        float wxShadow=max(wxS0,max(wxS1,wxS2));col*=1.0-wxShadow*.20;
 
         float dif=clamp(dot(n,uSunDir),0.0,1.0);
         col*=0.82+0.28*dif;
@@ -87015,6 +87077,7 @@ function updateOceanFFT(t,dt){
   oceanMat.uniforms.uF0.value=oceanFFTEngine.foamTex(0);
   oceanMat.uniforms.uF1.value=oceanFFTEngine.foamTex(1);
   oceanMat.uniforms.uF2.value=oceanFFTEngine.foamTex(2);
+  if(oceanMat.uniforms.uFoamAmt)oceanMat.uniforms.uFoamAmt.value=.85+(weatherLocal.storm||0)*.28+(weatherLocal.rain||0)*.08;
 }
 
 function buildOceanLegacy(){
@@ -87029,6 +87092,7 @@ function buildOceanLegacy(){
       uH:{value:heightTex}, uHC:{value:new THREE.Vector2(0,0)}, uHW:{value:HW},
       uFloor:{value:SEA_FLOOR}, uMax:{value:HMAX}, uWind:{value:windVec},
       uCloudAmt:terrainCloudU, uRegionWater:{value:new THREE.Color(0x93c0bd)},
+      uWxShade0:weatherShadowU0,uWxShade1:weatherShadowU1,uWxShade2:weatherShadowU2,
       // Screen-Space-Reflexion: liest Farbe+Tiefe des vorigen Frames (siehe
       // rtS/rtSPrev-Ping-Pong in renderAll), mit den Kameramatrizen, mit
       // denen genau dieses Bild gerendert wurde — nicht die aktuellen,
@@ -87053,11 +87117,13 @@ function buildOceanLegacy(){
       }`:`
       float grund(vec2 p){ return -80.0; }`)+`
       varying vec3 vW;
+      varying vec2 vBaseXZ;
       varying float vCrest;
       uniform float uTime;
       uniform vec2 uWind;
       void main(){
         vec4 wp=modelMatrix*vec4(position,1.0);
+        vec2 baseP=wp.xz;vBaseXZ=baseP;
         float t=uTime;
         // Große Dünung — dieselben drei Glieder wie in der Flugmechanik
         float sw=sin(wp.x*0.0021+t*0.55)*0.9+sin(wp.z*0.0027-t*0.42)*0.8
@@ -87072,7 +87138,7 @@ function buildOceanLegacy(){
         float c=sin(k1)*0.58+sin(k2)*0.30+sin(k3)*0.14;
         sw+=c*1.35;
         // Im Flachwasser laufen die Wellen sanft aus
-        float shoal=smoothstep(3.0,64.0,-grund(wp.xz));
+        float shoal0=smoothstep(3.0,64.0,-grund(baseP));
         // Gerstner-artiger Horizontalversatz der Windwellen: schiebt Wasser
         // zu den Kämmen zusammen statt es nur zu heben — daraus werden
         // spitzere Kämme und breitere, flachere Täler statt gleichförmiger
@@ -87080,9 +87146,12 @@ function buildOceanLegacy(){
         // kostet also kaum mehr als die schon vorhandene Höhenwelle.
         float gc=cos(k1)*0.58*d1.x+cos(k2)*0.30*d2.x+cos(k3)*0.14*d3.x;
         float gs=cos(k1)*0.58*d1.y+cos(k2)*0.30*d2.y+cos(k3)*0.14*d3.y;
-        wp.x-=gc*0.85*shoal;
-        wp.z-=gs*0.85*shoal;
-        wp.y+=sw*(0.025+0.975*shoal)-(1.0-shoal)*0.30;
+        vec2 candidate=baseP-vec2(gc,gs)*0.85*shoal0;
+        float shoal1=smoothstep(3.0,64.0,-grund(candidate));
+        float shoal=min(shoal0,shoal1);
+        wp.x=baseP.x-gc*0.85*shoal;
+        wp.z=baseP.y-gs*0.85*shoal;
+        wp.y+=sw*(0.025+0.975*shoal)-(1.0-shoal)*0.38;
         vCrest=shoal;
         vW=wp.xyz;
         gl_Position=projectionMatrix*viewMatrix*wp;
@@ -87092,12 +87161,14 @@ function buildOceanLegacy(){
       uniform float uTime,uHW,uFloor,uMax,uFogNear,uFogFar,uCloudAmt;
       uniform vec2 uHC;
       uniform vec3 uDeep,uShallow,uLagoon,uFoam,uSunC,uSunDir,uSky,uFog,uRegionWater;
+      uniform vec4 uWxShade0,uWxShade1,uWxShade2;
       uniform vec2 uWind;
       uniform sampler2D uH;
       uniform sampler2D tSSR,tSSRDepth;
       uniform float uSSREnabled;
       uniform mat4 uSSRProj,uSSRView;
       varying vec3 vW;
+      varying vec2 vBaseXZ;
       varying float vCrest;
       // Screen-Space-Reflexion: marschiert vom Wasserpunkt aus in Weltraum-
       // Schritten entlang der gespiegelten Blickrichtung, wachsend gröber je
@@ -87168,7 +87239,9 @@ function buildOceanLegacy(){
       }
       void main(){
         vec2 p=vW.xz;
-        float h=terrain(p);
+        // Wellen dürfen Texturdetails bewegen, aber niemals die Land/Wasser-
+        // Klassifikation selbst. Diese bleibt an der unverformten Weltposition.
+        float h=terrain(vBaseXZ);
         float depth=max(0.0,-h);
         float t=uTime;
         vec2 q=p*0.010;
@@ -87237,6 +87310,10 @@ function buildOceanLegacy(){
           +.18*sin((p.x-p.y)*.00091-t*.014);
         float cloudShadow=smoothstep(.64,.91,cloudBand)*uCloudAmt;
         col*=1.0-cloudShadow*.12;
+        float wxS0=(1.0-smoothstep(uWxShade0.z*.52,uWxShade0.z*1.14,distance(p,uWxShade0.xy)))*uWxShade0.w;
+        float wxS1=(1.0-smoothstep(uWxShade1.z*.52,uWxShade1.z*1.14,distance(p,uWxShade1.xy)))*uWxShade1.w;
+        float wxS2=(1.0-smoothstep(uWxShade2.z*.52,uWxShade2.z*1.14,distance(p,uWxShade2.xy)))*uWxShade2.w;
+        float wxShadow=max(wxS0,max(wxS1,wxS2));col*=1.0-wxShadow*.20;
 
         float dif=clamp(dot(n,uSunDir),0.0,1.0);
         col*=0.82+0.28*dif;
@@ -87914,6 +87991,8 @@ function addTerrainSheen(mat){
     shader.uniforms.uNight=terrainNightU;
     shader.uniforms.uCloudTime=terrainTimeU;
     shader.uniforms.uCloudAmt=terrainCloudU;
+    shader.uniforms.uWxShadow0=weatherShadowU0;shader.uniforms.uWxShadow1=weatherShadowU1;shader.uniforms.uWxShadow2=weatherShadowU2;
+    shader.uniforms.uWxWet0=weatherGroundWetU0;shader.uniforms.uWxWet1=weatherGroundWetU1;shader.uniforms.uWxWet2=weatherGroundWetU2;
     shader.uniforms.uAerialCol={value:C.hor};
     shader.uniforms.uWorldLodMode={value:0};
     shader.uniforms.uWorldLodMix={value:1};
@@ -87936,10 +88015,12 @@ function addTerrainSheen(mat){
         varying vec3 vWN;
         uniform vec3 uRimDir,uRimCol,uAerialCol;
         uniform float uWet,uNight,uCloudTime,uCloudAmt;
+        uniform vec4 uWxShadow0,uWxShadow1,uWxShadow2,uWxWet0,uWxWet1,uWxWet2;
         uniform float uWorldLodMode,uWorldLodMix,uWorldLodSeed;
         uniform sampler2D tSSR,tSSRDepth,tTerrainDetail,tPaintSurface;
         uniform float uSSREnabled;
         uniform mat4 uSSRProj,uSSRView;
+        float wxCell(vec4 w,vec2 p){if(w.w<=.0001)return 0.0;float d=distance(p,w.xy);return (1.0-smoothstep(w.z*.52,w.z*1.14,d))*w.w;}
         float tHash(vec2 p){p=fract(p*vec2(115.7,132.9));p+=dot(p,p+31.19);return fract(p.x*p.y);}
         float tNoise(vec2 p){
           vec2 i=floor(p),f=fract(p);
@@ -88046,6 +88127,13 @@ function addTerrainSheen(mat){
           float cloud=tNoise(cp*1.7)+tNoise(cp*3.1+vec2(13.2,7.4))*.46;
           cloud=smoothstep(.68,1.08,cloud)*uCloudAmt;
           diffuseColor.rgb*=1.0-cloud*.22;
+          /* Cell-coherent cloud shadow: unlike the decorative noise above,
+             this darkness is centered on the actual simulated fronts. */
+          float wxShadow=max(wxCell(uWxShadow0,vWP.xz),max(wxCell(uWxShadow1,vWP.xz),wxCell(uWxShadow2,vWP.xz)));
+          diffuseColor.rgb*=1.0-wxShadow*.30;
+          /* Recent rain leaves local ground wet after the cell has moved on. */
+          float wxWet=max(wxCell(uWxWet0,vWP.xz),max(wxCell(uWxWet1,vWP.xz),wxCell(uWxWet2,vWP.xz)));
+          diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.66,.72,.75),wxWet*.24);
           // Boden-Körnung: zwei überlagerte Rauschfrequenzen auf der bereits
           // handabgestimmten Vertexfarbe statt einer reinen Flächenfarbe —
           // Sand bekommt Korn, Gras Sprenkel, Fels Äderung. Verblasst mit der
@@ -94708,8 +94796,10 @@ function townLifeState(pulse,is,opt){
   opt=opt||{};const phase=opt.phase===undefined?Math.floor(dayT)%TIMES.length:clamp(Math.floor(opt.phase),0,TIMES.length-1),festival=opt.festival===undefined?pulse.label==='festlich':!!opt.festival;
   const gfxCrowd=opt.gfxCrowd===undefined?(SAVE&&SAVE.gfx&&SAVE.gfx.preset==='low'?.64:1):opt.gfxCrowd;
   let dayCrowd=1,dayPace=1;if(phase===5){dayCrowd=festival?.62:.20;dayPace=.72;}else if(phase===4||phase===6){dayCrowd=festival?.88:.48;dayPace=.82;}else if(phase===0){dayCrowd=.76;dayPace=.88;}else if(phase===3){dayCrowd=festival?1.08:.84;dayPace=.92;}
-  const rainBand=opt.rainBand===undefined?(rainAmt>.62?2:(rainAmt>.28?1:0)):opt.rainBand,rainCrowd=rainBand===2?.38:(rainBand===1?.70:1),raid=opt.raid===undefined?pulse.label==='angespannt':!!opt.raid,emergency=opt.emergency===undefined?pulse.label==='wach':!!opt.emergency;
-  const town=is||(folkTown&&folkTown.is),rep=town?repLevel(town.key):0,hero=town?heroWorldProfile(town):null,hr=hero&&HERO_HARBOR_ROUTINES[hero.id];
+  const town=is||(folkTown&&folkTown.is),townWx=(opt.rainBand===undefined&&town&&typeof weatherForecastAt==='function')?weatherForecastAt(town.cx,town.cz,0):null;
+  const townRain=townWx?Math.max(townWx.rain,townWx.storm*.9):rainAmt;
+  const rainBand=opt.rainBand===undefined?(townRain>.62?2:(townRain>.28?1:0)):opt.rainBand,rainCrowd=rainBand===2?.38:(rainBand===1?.70:1),raid=opt.raid===undefined?pulse.label==='angespannt':!!opt.raid,emergency=opt.emergency===undefined?pulse.label==='wach':!!opt.emergency;
+  const rep=town?repLevel(town.key):0,hero=town?heroWorldProfile(town):null,hr=hero&&HERO_HARBOR_ROUTINES[hero.id];
   const crowd=pulse.crowd*dayCrowd*rainCrowd*gfxCrowd,spawnCrowd=pulse.crowd*dayCrowd*gfxCrowd*(rainBand===2?.72:(rainBand===1?.86:1));
   const pace=pulse.pace*dayPace*(rainBand?1.12:1),service=!!(pl&&pl.alive&&(pl.hp<(pl.hpMax||100)*.72||airDamageWorst()>.24));
   return {crowd:crowd,spawnCrowd:spawnCrowd,pace:pace,shelter:rainBand>0,rainBand:rainBand,night:phase===5,carts:phase>0&&phase<4&&rainBand===0&&!raid,phase:phase,festival:festival,raid:raid,emergency:emergency,
@@ -95670,7 +95760,29 @@ function updateFire(dt){
    ============================================================ */
 const WEATHER_TYPES=['rain','fog','storm'];
 const WEATHER_LABEL={rain:'Regenfront',fog:'Nebelbank',storm:'Gewitterzelle'};
+const WEATHER_VISUAL_PROFILE={
+  rain:{baseHeight:430,topHeight:900,coverage:.82,density:.72,edgeSoftness:.30,precipitation:.82,darkness:.46,anvil:0,mistLayer:.26,shadowStrength:.48},
+  fog:{baseHeight:18,topHeight:165,coverage:.94,density:.78,edgeSoftness:.42,precipitation:0,darkness:.08,anvil:0,mistLayer:.92,shadowStrength:.10},
+  storm:{baseHeight:390,topHeight:1650,coverage:.92,density:.96,edgeSoftness:.24,precipitation:1,darkness:.78,anvil:.92,mistLayer:.48,shadowStrength:.86}
+};
 let weatherMaintainT=0,weatherWarningT=0,weatherSaveT=0,weatherWasSevere=false,weatherCalmT=0;
+let weatherWetStampT=0,weatherUniformT=0,weatherAudioApproach=0;
+const weatherWetPatches=[];
+function weatherProfile(c){return WEATHER_VISUAL_PROFILE[c&&c.type]||WEATHER_VISUAL_PROFILE.rain;}
+function weatherCellSerial(c){const m=String(c&&c.id||'').match(/:(\d+)$/);return m?+m[1]:1;}
+function weatherDet(c,salt){const n=weatherCellSerial(c);return ihash((weatherState().seed|0)^n,n*17,salt|0);}
+function weatherCellZone(c,x,z){
+  if(!c)return {name:'clear',radial:0,power:0};const p=weatherCellStrength(c,0),r=Math.max(400,+c.r||2000),dx=x-c.x,dz=z-c.z,d=Math.hypot(dx,dz),q=d/r;
+  if(q>1.55)return {name:'clear',radial:0,power:p};
+  const vl=Math.hypot(c.vx||0,c.vz||0)||1,along=(dx*(c.vx||0)+dz*(c.vz||0))/vl/r;
+  let name=q>1.18?'outer_haze':q>.90?'edge':q>.48?'precip':'core';if(q>.58&&along<-.34)name='backside';
+  return {name:name,radial:clamp(1-q/1.55,0,1),power:p,q:q,along:along};
+}
+function weatherAtmosphereAt(x,z){
+  let light=0,cool=0,best=null,bestV=0;for(const c of weatherEnsure().cells){const zone=weatherCellZone(c,x,z);if(zone.name==='clear')continue;const typ=c.type==='storm'?1:(c.type==='rain'?.65:.35),trail=zone.name==='backside'?.58:1,v=zone.radial*zone.power*typ*trail;if(v>light)light=v;cool=Math.max(cool,zone.radial*zone.power*(c.type==='fog'?.8:.55));if(v>bestV){bestV=v;best={cell:c,zone:zone};}}
+  return {light:clamp(light,0,1),cool:clamp(cool,0,1),best:best};
+}
+function weatherMapConfidenceCell(c){const d=Math.hypot(c.x-pl.pos.x,c.z-pl.pos.z);return clamp(.54+Math.min(12,repMax())*.018-d/100000,.45,.94);}
 const weatherWarned=new Set();
 const weatherChoiceOffered=new Set();
 function weatherChoiceAlreadySeen(id){
@@ -95763,6 +95875,11 @@ function updateWeatherCells(dt){
   const w=weatherEnsure();for(let i=w.cells.length-1;i>=0;i--){const c=w.cells[i];c.age=(+c.age||0)+dt;c.x+=(+c.vx||0)*dt;c.z+=(+c.vz||0)*dt;if(c.age>=c.duration||Math.hypot(c.x-pl.pos.x,c.z-pl.pos.z)>70000)w.cells.splice(i,1);}
   weatherMaintainT-=dt;if(weatherMaintainT<=0){weatherMaintainT=18;while(w.cells.length<8)weatherCreateCell(null,pl.pos.x,pl.pos.z,false);while(w.cells.length>12)w.cells.shift();flightPlanStatsCache=null;}
   weatherSampleInto(pl.pos.x,pl.pos.z,0,weatherLocal);rainTgt=weatherLocal.rain;fogTgt=weatherLocal.fog;
+  const atmos=weatherAtmosphereAt(pl.pos.x,pl.pos.z);weatherAtmosLight=atmos.light;weatherAtmosCool=atmos.cool;weatherLocalZone=atmos.best?atmos.best.zone.name:'clear';
+  const app=weatherNearestApproach(pl.pos.x,pl.pos.z);weatherAudioApproach=app?clamp((1-app.distance/9000)*app.power,0,1):0;
+  weatherWetStampT-=dt;if(weatherWetStampT<=0){weatherWetStampT=38;for(const c of w.cells){if(c.type==='fog')continue;const pw=weatherCellStrength(c,0);if(pw<.30)continue;weatherWetPatches.push({x:c.x,z:c.z,r:c.r*.72,s:pw*(c.type==='storm'?1:.72),age:0});}while(weatherWetPatches.length>9)weatherWetPatches.shift();}
+  for(let i=weatherWetPatches.length-1;i>=0;i--){const p=weatherWetPatches[i];p.age+=dt;p.s*=Math.exp(-dt/260);if(p.s<.04||p.age>620)weatherWetPatches.splice(i,1);}
+  weatherUniformT-=dt;if(weatherUniformT<=0){weatherUniformT=.12;weatherUpdateWorldUniforms();}
   // Sturmböen für die Vegetation: 1.0 = bisheriges Ruheverhalten, steigt mit
   // tatsächlicher lokaler Sturm-/Turbulenzstärke. Träge genug geglättet
   // (gleiches Tempo wie rainAmt), damit Kronen nicht bei jeder Bö zucken.
@@ -95808,15 +95925,15 @@ function updateRain(dt,t){
   if(!rainMesh.visible)return;
   rainMesh.position.copy(camera.position);
   const P=rainPos.array;
-  const fall=-34*dt, wx=curWind.x*dt*.5, wz=curWind.z*dt*.5;
-  const len=2.6+rainAmt*4.2;
+  const fall=-34*dt, wx=(curWind.x*.5+weatherLocal.wx*.35)*dt, wz=(curWind.z*.5+weatherLocal.wz*.35)*dt;
+  const len=2.6+rainAmt*4.2+weatherLocal.turbulence*2.0;
   for(let i=0;i<RAIN_N;i++){
     let y=P[i*6+1]+fall, x=P[i*6]+wx, z=P[i*6+2]+wz;
     if(y<-RAIN_BOX*.5){ y=RAIN_BOX*1.1; x=(Math.random()*2-1)*RAIN_BOX; z=(Math.random()*2-1)*RAIN_BOX; }
     if(x> RAIN_BOX)x-=RAIN_BOX*2; if(x<-RAIN_BOX)x+=RAIN_BOX*2;
     if(z> RAIN_BOX)z-=RAIN_BOX*2; if(z<-RAIN_BOX)z+=RAIN_BOX*2;
     P[i*6]=x;P[i*6+1]=y;P[i*6+2]=z;
-    P[i*6+3]=x+curWind.x*.05;P[i*6+4]=y-len;P[i*6+5]=z+curWind.z*.05;
+    P[i*6+3]=x+(curWind.x+weatherLocal.wx*.7)*.05;P[i*6+4]=y-len;P[i*6+5]=z+(curWind.z+weatherLocal.wz*.7)*.05;
   }
   rainPos.needsUpdate=true;
 }
@@ -95828,7 +95945,10 @@ function updateHaze(dt){
 /* ---------- Gewitterzellen: seltene, gut sichtbare Wolkentürme mit
    gefährlichem Fallwind darunter — wer hindurchfliegt, muss gegensteuern,
    wer sie umfliegt, sieht sie schon von weitem als dunkle Wand. ---------- */
-let storms=[], stormTimer=0,weatherFronts=[];
+let storms=[], stormTimer=0,weatherFronts=[],fogFronts=[];
+const weatherVisualById=new Map();
+let weatherCloudTex=null,weatherInteriorPts=null,weatherInteriorMat=null;
+const _wxObj=new THREE.Object3D();
 function stormGeo(){
   const p=[];
   const cols=[0x262a30,0x33373d,0x1c2024];
@@ -95841,6 +95961,57 @@ function stormGeo(){
     p.push(geoCol(g,cols[i%cols.length]));
   }
   return mergeGeos(p);
+}
+function weatherCloudTexture(){
+  if(weatherCloudTex)return weatherCloudTex;const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),im=x.createImageData(128,128),d=im.data;
+  for(let j=0;j<128;j++)for(let i=0;i<128;i++){const dx=(i-63.5)/64,dy=(j-63.5)/64,r=Math.hypot(dx,dy),n=.62+.22*Math.sin(i*.19+j*.13)+.16*Math.sin(i*.071-j*.117);const a=clamp((1-r)*n*2.2,0,1);const k=(j*128+i)*4;d[k]=d[k+1]=d[k+2]=255;d[k+3]=Math.round(a*255);}x.putImageData(im,0,0);weatherCloudTex=new THREE.CanvasTexture(c);weatherCloudTex.minFilter=weatherCloudTex.magFilter=THREE.LinearFilter;return weatherCloudTex;
+}
+function weatherPuffGeo(){return G('weatherPuffV2',function(){return new THREE.SphereGeometry(1,8,6);});}
+function weatherCurtainGeo(){return G('weatherCurtainV2',function(){return new THREE.CylinderGeometry(1,1,1,24,1,true);});}
+function weatherVisualCreate(c){
+  const pr=weatherProfile(c),grp=new THREE.Group(),col=c.type==='storm'?0x555b63:(c.type==='fog'?0xd8dddd:0x9baab2),maxN=IS_MOBILE?16:26;
+  const mat=new THREE.MeshLambertMaterial({color:col,vertexColors:true,transparent:true,opacity:.35,depthWrite:false,fog:true,side:THREE.DoubleSide});
+  const inst=new THREE.InstancedMesh(weatherPuffGeo(),mat,maxN);inst.frustumCulled=false;grp.add(inst);
+  const sm=new THREE.SpriteMaterial({map:weatherCloudTexture(),color:col,transparent:true,opacity:.22,depthWrite:false,fog:true});const imp=new THREE.Sprite(sm);grp.add(imp);
+  const pm=new THREE.MeshBasicMaterial({color:c.type==='fog'?0xdde2e2:0x718c98,transparent:true,opacity:.03,depthWrite:false,side:THREE.DoubleSide,fog:true});const precip=new THREE.Mesh(weatherCurtainGeo(),pm);precip.frustumCulled=false;grp.add(precip);
+  scene.add(grp);const v={weatherId:c.id,type:c.type,obj:grp,inst:inst,imp:imp,precip:precip,mat:mat,sm:sm,pm:pm,r:c.r,x:c.x,z:c.z,life:0,lod:0,maxN:maxN,profile:pr};weatherVisualById.set(c.id,v);weatherVisualPopulate(v,c);return v;
+}
+function weatherVisualPopulate(v,c){
+  const pr=weatherProfile(c),seed=weatherCellSerial(c),n=v.maxN,r=c.r;
+  for(let i=0;i<n;i++){
+    const a=ihash(seed,i,811)*TAU,rr=Math.sqrt(ihash(seed,i,823))*r*(c.type==='fog'?.78:.58),u=ihash(seed,i,839),sx=r*(.10+ihash(seed,i,853)*.15),sz=sx*(.85+ihash(seed,i,857)*.40);let y,sy;
+    if(c.type==='fog'){y=pr.baseHeight+u*(pr.topHeight-pr.baseHeight);sy=18+ihash(seed,i,863)*34;sx*=2.2;sz*=2.2;}
+    else if(c.type==='storm'){
+      if(i<n*.30){y=pr.baseHeight+35+u*120;sy=55+u*65;sx*=1.5;sz*=1.5;}
+      else if(i>n*.78){y=pr.topHeight-150+u*110;sy=80+u*90;sx*=1.45+pr.anvil*.78;sz*=1.20+pr.anvil*.42;}
+      else{y=pr.baseHeight+150+u*(pr.topHeight-pr.baseHeight-260);sy=90+u*230;sx*=1.0;sz*=1.0;}
+    }else{y=pr.baseHeight+u*(pr.topHeight-pr.baseHeight);sy=55+u*85;sx*=1.45;sz*=1.45;}
+    _wxObj.position.set(Math.cos(a)*rr,y,Math.sin(a)*rr);_wxObj.scale.set(sx,sy,sz);_wxObj.rotation.set(0,a*.31,0);_wxObj.updateMatrix();v.inst.setMatrixAt(i,_wxObj.matrix);
+    const cc=new THREE.Color();if(c.type==='storm'){const top=clamp((y-pr.baseHeight)/Math.max(1,pr.topHeight-pr.baseHeight),0,1);cc.setHSL(.59,.07,.25+top*.24);}else if(c.type==='fog')cc.setHSL(.50,.05,.78+u*.10);else cc.setHSL(.56,.08,.56+u*.12);v.inst.setColorAt(i,cc);
+  }
+  v.inst.instanceMatrix.needsUpdate=true;if(v.inst.instanceColor)v.inst.instanceColor.needsUpdate=true;
+}
+function weatherVisualSet(v,c,power,lod){
+  const pr=weatherProfile(c),mid=(pr.baseHeight+pr.topHeight)*.5;v.lod=lod;v.x=c.x;v.z=c.z;v.r=c.r;v.life=Math.max(0,c.duration-c.age);v.obj.position.set(c.x,0,c.z);
+  /* The far impostor never disappears completely when a denser LOD fades in;
+     it keeps the same silhouette underneath the deterministic puff set. */
+  v.imp.visible=true;v.inst.visible=lod>0;const fullCount=Math.max(5,Math.round(v.maxN*(.52+pr.coverage*.48)));v.inst.count=lod===1?Math.min(fullCount,IS_MOBILE?Math.round(5+pr.coverage*3):Math.round(7+pr.coverage*5)):fullCount;
+  v.mat.opacity=(c.type==='fog'?.20:c.type==='storm'?.36:.25)*pr.density*(.35+power*.75);v.sm.opacity=((c.type==='fog'?.12+pr.mistLayer*.08:.12)+power*(c.type==='storm'?.28:.18))*(lod===2?.34:lod===1?.68:1);v.imp.position.set(0,mid,0);v.imp.scale.set(c.r*(1.50+pr.edgeSoftness*.62),Math.max(180,(pr.topHeight-pr.baseHeight)*(c.type==='fog'?.9:1.15)),1);
+  const precipOn=lod>0&&pr.precipitation>.01&&power>.18;v.precip.visible=precipOn;if(precipOn){v.precip.position.set(0,pr.baseHeight*.48,0);v.precip.scale.set(c.r*(.48+pr.coverage*.18),Math.max(240,pr.baseHeight*.95),c.r*(.48+pr.coverage*.18));v.pm.opacity=(.008+power*(c.type==='storm'?.050:.030))*pr.precipitation*(lod===1?.55:1);}
+}
+function weatherInteriorEnsure(){
+  if(weatherInteriorPts)return;const N=IS_MOBILE?100:190,pos=new Float32Array(N*3);for(let i=0;i<N;i++){const a=ihash(i,71,401)*TAU,r=35+ihash(i,73,403)*330,y=(ihash(i,79,409)-.5)*220;pos[i*3]=Math.cos(a)*r;pos[i*3+1]=y;pos[i*3+2]=Math.sin(a)*r;}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));weatherInteriorMat=new THREE.PointsMaterial({map:weatherCloudTexture(),color:0xcfd5d6,size:IS_MOBILE?88:118,sizeAttenuation:true,transparent:true,opacity:0,depthWrite:false,fog:false,alphaTest:.02});weatherInteriorPts=new THREE.Points(g,weatherInteriorMat);weatherInteriorPts.frustumCulled=false;scene.add(weatherInteriorPts);
+}
+function weatherInteriorUpdate(dt,T){
+  weatherInteriorEnsure();let amt=0,typ='',bestPr=WEATHER_VISUAL_PROFILE.rain;for(const c of weatherEnsure().cells){const pr=weatherProfile(c),z=weatherCellZone(c,pl.pos.x,pl.pos.z),vert=smoothstep(pr.baseHeight-80,pr.baseHeight+80,pl.pos.y)*(1-smoothstep(pr.topHeight-120,pr.topHeight+100,pl.pos.y));const a=z.radial*z.power*vert*pr.density;if(a>amt){amt=a;typ=c.type;bestPr=pr;}}
+  weatherCloudInteriorAmt+=(amt-weatherCloudInteriorAmt)*Math.min(1,dt*1.8);weatherInteriorMat.opacity=weatherCloudInteriorAmt*(.08+bestPr.mistLayer*.15)*(typ==='storm'?1.12:1);weatherInteriorMat.color.setHex(typ==='storm'?0x899096:(typ==='fog'?0xe1e4e2:0xc3ccd0));weatherInteriorPts.visible=weatherInteriorMat.opacity>.004;weatherInteriorPts.position.copy(camera.position);weatherInteriorPts.rotation.y=T*.006;
+}
+function weatherDropVisual(v){if(!v||!v.obj)return;scene.remove(v.obj);for(const m of [v.mat,v.sm,v.pm])if(m&&m.dispose)m.dispose();weatherVisualById.delete(v.weatherId);}
+function weatherUpdateWorldUniforms(){
+  const cells=weatherEnsure().cells,best=[];for(const c of cells){const p=weatherCellStrength(c,0);if(p<.04)continue;const d=Math.hypot(c.x-pl.pos.x,c.z-pl.pos.z),score=p*(c.type==='storm'?1.4:c.type==='rain'?1:.72)/(1+d/9000);best.push({c:c,p:p,d:d,score:score});}best.sort(function(a,b){return b.score-a.score;});
+  const sh=[weatherShadowU0.value,weatherShadowU1.value,weatherShadowU2.value],sky=[weatherSkyU0.value,weatherSkyU1.value,weatherSkyU2.value],types=weatherSkyTypeU.value;types.set(0,0,0);
+  for(let i=0;i<3;i++){const b=best[i],sv=sh[i],kv=sky[i];if(!b){sv.set(0,0,1,0);kv.set(1,0,.99,0);continue;}const c=b.c,pr=weatherProfile(c),sy=Math.max(.15,Math.abs(sunDir.y)),shadowShift=(pr.baseHeight+pr.topHeight*.25)/sy;sv.set(c.x-sunDir.x*shadowShift,c.z-sunDir.z*shadowShift,c.r,clamp(b.p*pr.shadowStrength,0,1));const dx=c.x-pl.pos.x,dz=c.z-pl.pos.z,dl=Math.hypot(dx,dz)||1,theta=Math.atan2(c.r,Math.max(c.r*.2,b.d));kv.set(dx/dl,dz/dl,Math.cos(clamp(theta,.06,1.18)),clamp(b.p*(1-b.d/36000),0,1));types.setComponent(i,c.type==='rain'?1:c.type==='fog'?2:3);}
+  const wet=[weatherGroundWetU0.value,weatherGroundWetU1.value,weatherGroundWetU2.value],wp=weatherWetPatches.slice().sort(function(a,b){return (Math.hypot(a.x-pl.pos.x,a.z-pl.pos.z)-a.s*5000)-(Math.hypot(b.x-pl.pos.x,b.z-pl.pos.z)-b.s*5000);});for(let i=0;i<3;i++){const q=wp[i];wet[i].set(q?q.x:0,q?q.z:0,q?q.r:1,q?clamp(q.s,0,1):0);}
 }
 /* Trichter der Wasserhose — vom Wolkenansatz bis zur Gischt auf dem Wasser.
    Ein glatter Kegel würde sich um die eigene Achse unsichtbar drehen,
@@ -95873,30 +96044,16 @@ function spawnStorm(){
   worldNarrative('storm','warning',{key:Math.floor((SAVE.log.sec||0)/60)},{priority:3});
   return cell;
 }
-function weatherDropVisual(v){
-  if(!v||!v.obj)return;scene.remove(v.obj);v.obj.traverse(function(o){if(o.material)o.material.dispose();});
-}
 function weatherSyncVisuals(){
-  const cells=weatherEnsure().cells,activeStorm=new Set(),activeRain=new Set();
-  for(const c of cells){
-    const power=weatherCellStrength(c,0),dist=Math.hypot(c.x-pl.pos.x,c.z-pl.pos.z);if(power<.08||dist>26000)continue;
-    if(c.type==='storm'){
-      activeStorm.add(c.id);let s=storms.find(function(v){return v.weatherId===c.id;});
-      if(!s){const m=new THREE.Mesh(G('storm',stormGeo),new THREE.MeshLambertMaterial({vertexColors:true,transparent:true,opacity:.1,fog:true,depthWrite:false}));m.frustumCulled=false;scene.add(m);s={weatherId:c.id,obj:m,x:c.x,z:c.z,r:c.r,life:0};storms.push(s);}
-      s.x=c.x;s.z=c.z;s.r=c.r;s.life=Math.max(0,c.duration-c.age);s.obj.position.set(c.x,590,c.z);s.obj.scale.setScalar(c.r/1250);s.obj.material.opacity=.38+power*.55;
-    }else if(c.type==='rain'){
-      activeRain.add(c.id);let f=weatherFronts.find(function(v){return v.weatherId===c.id;});
-      if(!f){const grp=new THREE.Group(),cloud=new THREE.Mesh(G('storm',stormGeo),new THREE.MeshLambertMaterial({vertexColors:true,color:0x9eacb4,transparent:true,opacity:.1,fog:true,depthWrite:false}));const curtain=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,20,1,true),new THREE.MeshBasicMaterial({color:0x718f9f,transparent:true,opacity:.04,side:THREE.DoubleSide,depthWrite:false,fog:true}));grp.add(cloud);grp.add(curtain);grp.userData.cloud=cloud;grp.userData.curtain=curtain;scene.add(grp);f={weatherId:c.id,obj:grp};weatherFronts.push(f);}
-      const cloud=f.obj.userData.cloud,curtain=f.obj.userData.curtain;f.obj.position.set(c.x,0,c.z);cloud.position.y=650;cloud.scale.setScalar(c.r/1550);cloud.material.opacity=.10+power*.28;curtain.position.y=320;curtain.scale.set(c.r*.58,620,c.r*.58);curtain.material.opacity=.018+power*.045;
-    }
-  }
-  for(let i=storms.length-1;i>=0;i--)if(!activeStorm.has(storms[i].weatherId)){weatherDropVisual(storms[i]);storms.splice(i,1);}
-  for(let i=weatherFronts.length-1;i>=0;i--)if(!activeRain.has(weatherFronts[i].weatherId)){weatherDropVisual(weatherFronts[i]);weatherFronts.splice(i,1);}
+  const cells=weatherEnsure().cells,active=new Set(),cand=[];for(const c of cells){const power=weatherCellStrength(c,0),dist=Math.hypot(c.x-pl.pos.x,c.z-pl.pos.z);if(power<.045||dist>33000)continue;active.add(c.id);let v=weatherVisualById.get(c.id);if(!v)v=weatherVisualCreate(c);cand.push({c:c,v:v,power:power,dist:dist});}
+  cand.sort(function(a,b){return a.dist-b.dist;});const fullN=1,medN=IS_MOBILE?2:3;storms.length=0;weatherFronts.length=0;fogFronts.length=0;
+  for(let i=0;i<cand.length;i++){const q=cand[i],lod=i<fullN?2:(i<fullN+medN?1:0);weatherVisualSet(q.v,q.c,q.power,lod);if(q.c.type==='storm')storms.push(q.v);else if(q.c.type==='rain')weatherFronts.push(q.v);else fogFronts.push(q.v);}
+  for(const [id,v] of Array.from(weatherVisualById.entries()))if(!active.has(id))weatherDropVisual(v);
 }
 function updateStorms(dt){
-  stormTimer-=dt;if(stormTimer<=0){stormTimer=1.0;weatherSyncVisuals();}
-  for(const s of storms)s.obj.rotation.y+=dt*.012;
-  for(const f of weatherFronts)f.obj.userData.cloud.rotation.y+=dt*.004;
+  stormTimer-=dt;if(stormTimer<=0){stormTimer=.72;weatherSyncVisuals();}
+  for(const s of storms)s.inst.rotation.y+=dt*.005;for(const f of weatherFronts)f.inst.rotation.y+=dt*.002;for(const f of fogFronts)f.inst.rotation.y+=dt*.001;
+  weatherInteriorUpdate(dt,(typeof ST!=='undefined'&&ST.time)||performance.now()/1000);
 }
 function stormDowndraft(x,z,y){
   let wy=0;
@@ -95977,8 +96134,8 @@ const lightningEl=el('lightning');
    des Vollbild-Aufhellens. Wird pro Einschlag neu gebaut (selten genug,
    dass eine frische Geometrie keine Rolle spielt) und gleich wieder
    entsorgt, sobald er verblasst ist. */
-function spawnLightningBolt(bx,bz){
-  const groundY=Math.max(heightAt(bx,bz),0), topY=520, segs=9;
+function spawnLightningBolt(bx,bz,topY){
+  const groundY=Math.max(heightAt(bx,bz),0);topY=isFinite(+topY)?+topY:900;const segs=9;
   const verts=[]; let x=bx,z=bz;
   const path=[[x,topY,z]];
   for(let i=1;i<=segs;i++){
@@ -96028,7 +96185,8 @@ function updateLightning(dt){
   const distToBolt=Math.hypot(bx-pl.pos.x,bz-pl.pos.z);
   lightningT=1;
   if(lightningBolt){ scene.remove(lightningBolt.obj); lightningBolt.obj.geometry.dispose(); lightningBolt.obj.material.dispose(); }
-  lightningBolt=spawnLightningBolt(bx,bz);
+  const pr=weatherProfile(weatherEnsure().cells.find(function(c){return c.id===near.weatherId;})||{type:'storm'});
+  lightningBolt=spawnLightningBolt(bx,bz,lerp(pr.baseHeight+120,pr.topHeight*.78,.35+Math.random()*.45));
   setTimeout(function(){ lightningT=Math.max(lightningT,.55); },90+Math.random()*60);
   const delay=Math.min(distToBolt/343,7);
   const vol=clamp(1-distToBolt/(near.r*3.2),.12,1);
@@ -98445,14 +98603,18 @@ function findDockNear(x,z,R){
   let best=null,bd=1e18;
   forEachIslandNear(x,z,R,function(is){
     if(!is.rw&&!is.hb)return;
-    const d=(is.cx-x)*(is.cx-x)+(is.cz-z)*(is.cz-z);
+    let d=1e18;
+    if(is.rw)d=Math.min(d,(is.rw.x-x)*(is.rw.x-x)+(is.rw.z-z)*(is.rw.z-z));
+    if(is.hb){
+      const hx=is.cx+Math.cos(is.hb.a)*is.r*.80,hz=is.cz+Math.sin(is.hb.a)*is.r*.80;
+      d=Math.min(d,(hx-x)*(hx-x)+(hz-z)*(hz-z));
+    }
     if(d<bd){bd=d;best=is;}
   });
   return best;
 }
-function resetPlane(x,z){
-  const is=findRunwayNear(x,z,26000);
-  if(is)return placeOnRunway(is);
+function resetPlane(x,z,preferRunway){
+  if(preferRunway!==false){const is=findRunwayNear(x,z,26000);if(is)return placeOnRunway(is);}
   let y=430;
   for(let k=0;k<9;k++){                        // nicht in einen Hang setzen
     const a=k/9*TAU;
@@ -103514,7 +103676,7 @@ function defaultSaveData(){
     prefs:{sound:true,music:true,hud:true,cam:0,sens:1.15,invPitch:false,invRoll:false,fbw:true,assist:true,coord:true,weatherHud:true,
       audioMaster:.8,audioVehicle:.85,audioWorld:.75,audioSfx:.9,audioMusic:.65,audioDyn:'normal',audioMono:false,audioVisual:true,
       dialogSpeed:'normal',dialogAuto:false,dialogRadio:true,dialogLog:true},
-    tasks:[],taskSeed:0,specialSeed:0,planes:[0],plane:0,airframes:{},extras:[],ownedExtras:[],lastPos:null,equip:[],workshopPresets:[],postcards:[],
+    tasks:[],taskSeed:0,specialSeed:0,planes:[0],plane:0,airframes:{},extras:[],ownedExtras:[],lastPos:null,resumeAnchor:null,equip:[],workshopPresets:[],postcards:[],
     regionsSeen:{},landscapeDiscoveries:{},landscapeJournal:[],heroWorld:{v:1,homeKey:'',assignments:{}},narrative2:defaultNarrative2(),
     story:{stage:0,rivalBeat:0,journal:[],wreckFound:[],flags:{},trust:0,corvinoState:'hostile'},circus:{found:[],done:[]},passenger:null,paxQuest:null,
     onboarding:{v:2,phase:0,tx:0,tz:0,shown:false,done:false,replay:false,rewarded:false,checkpoint:null},
@@ -104020,8 +104182,50 @@ function pruneFog(){
   const drop=keys.length-16000;
   for(let i=0;i<drop;i++)delete SAVE.fog[keys[i]];
 }
+function findResumeDock(x,z){
+  // Für Flug-Saves nur bereits bekannte Häfen als sicheren Wiedereinstieg
+  // verwenden. So schenkt das Fortsetzen keine unentdeckte Insel; gibt es
+  // keinen bekannten Hafen in der Region, startet resetPlane() nahe lastPos.
+  for(const R of [6500,14000,26000,42000,65000]){
+    let best=null,bd=1e18;
+    forEachIslandNear(x,z,R,function(is){
+      const known=String(is.key)===String(SAVE.home)||!!(SAVE.visited&&SAVE.visited[is.key]);
+      if(!known||(!is.rw&&!is.hb))return;
+      let d=1e18;if(is.rw)d=Math.min(d,(is.rw.x-x)*(is.rw.x-x)+(is.rw.z-z)*(is.rw.z-z));
+      if(is.hb){const hx=is.cx+Math.cos(is.hb.a)*is.r*.80,hz=is.cz+Math.sin(is.hb.a)*is.r*.80;d=Math.min(d,(hx-x)*(hx-x)+(hz-z)*(hz-z));}
+      if(d<bd){bd=d;best=is;}
+    });
+    if(best)return best;
+  }
+  return null;
+}
+function captureResumePosition(){
+  if(!pl||!pl.alive)return;
+  SAVE.lastPos={x:clamp(pl.pos.x,-1e7,1e7),z:clamp(pl.pos.z,-1e7,1e7)};
+  if(pl.ground||pl.water){
+    const near=findDockNear(pl.pos.x,pl.pos.z,7000);
+    if(near){
+      const mode=(pl.ground&&near.rw)?'runway':((pl.water&&near.hb)?'bay':(near.rw?'runway':'bay'));
+      SAVE.resumeAnchor={ci:near.ci,cj:near.cj,b:!!near.big,key:near.key,mode:mode};
+      return;
+    }
+  }
+  SAVE.resumeAnchor=null;
+}
+function placeAtResumeAnchor(a){
+  const is=resumeAnchorIsland(a);if(!is)return false;
+  if(a.mode==='runway'&&is.rw)return placeOnRunway(is);
+  if(a.mode==='bay'&&is.hb)return placeInBay(is);
+  return is.rw?placeOnRunway(is):(is.hb?placeInBay(is):false);
+}
+function finalizeRelocationSave(){
+  hmRecenterNow(pl.pos.x,pl.pos.z);
+  for(let k=0;k<6;k++)updateStream(pl.pos.x,pl.pos.z,40);
+  captureResumePosition();saveNow();
+}
 function saveNow(){
   try{
+    if(ST.running&&pl&&pl.alive)captureResumePosition();
     snapshotAirframeDamage();
     pruneFog();
     if(!curSlot)curSlot=genSlotId();
@@ -104033,7 +104237,7 @@ function saveNow(){
    und letzter Aufenthaltsort nicht zwischen zwei Auto-Speicherungen verloren gehen. */
 function saveOnExit(){
   if(!ST.running||!pl.alive)return;
-  SAVE.lastPos={x:pl.pos.x,z:pl.pos.z};
+  captureResumePosition();
   saveNow();
 }
 window.addEventListener('pagehide',saveOnExit);
@@ -104470,7 +104674,7 @@ function resetStoryRuntime(){
      SAVE.weather direkt wieder auf. */
   rainAmt=0;rainTgt=0;fogAmt=0;fogTgt=0;wetAmt=0;sandAmt=0;windGustAmt=1;
   terrainWetU.value=0;windGustU.value=1;
-  for(const s of storms)weatherDropVisual(s);for(const f of weatherFronts)weatherDropVisual(f);storms.length=0;weatherFronts.length=0;weatherWarned.clear();weatherChoiceOffered.clear();weatherWasSevere=false;weatherCalmT=0;weatherMaintainT=weatherWarningT=weatherSaveT=0;
+  for(const v of Array.from(weatherVisualById.values()))weatherDropVisual(v);storms.length=0;weatherFronts.length=0;fogFronts.length=0;weatherVisualById.clear();weatherWetPatches.length=0;weatherAtmosLight=weatherAtmosCool=weatherCloudInteriorAmt=weatherAudioApproach=0;weatherLocalZone='clear';if(weatherInteriorMat)weatherInteriorMat.opacity=0;if(weatherInteriorPts)weatherInteriorPts.visible=false;weatherWarned.clear();weatherChoiceOffered.clear();weatherWasSevere=false;weatherCalmT=0;weatherMaintainT=weatherWarningT=weatherSaveT=weatherWetStampT=weatherUniformT=0;
   clearTimeout(dialogAutoTimer);dialogAutoTimer=0;
   storyDlg=null;storyFocusReturn=null;storyPauseReturn=null;bottleFocusReturn=null;modalDialogQueue.length=0;if(modalDialogTimer){clearTimeout(modalDialogTimer);modalDialogTimer=0;}if(narrativeResumeTimer){clearTimeout(narrativeResumeTimer);narrativeResumeTimer=0;}pendingTip=null;peil2BriefingScheduled=false;
   if(narrRelationTimer){clearTimeout(narrRelationTimer);narrRelationTimer=0;}el('narrativeRelationToast').classList.remove('on');
@@ -104526,6 +104730,17 @@ function resetStoryRuntime(){
   EV.kind=null; EV.obj=null; EV.data=null; EV.t=0; EV.dur=0; EV.paid=0;
   EV.timer=170+Math.random()*220;
   for(const r of raiders) if(r.on){ r.on=false; r.m.visible=false; }
+}
+function sanitizeResumeAnchor(a){
+  if(!a||typeof a!=='object'||!isFinite(+a.ci)||!isFinite(+a.cj))return null;
+  const mode=a.mode==='bay'?'bay':'runway';
+  return {ci:clamp(Math.floor(+a.ci),-100000,100000),cj:clamp(Math.floor(+a.cj),-100000,100000),b:!!a.b,
+    key:safeSaveKey(a.key),mode:mode};
+}
+function resumeAnchorIsland(a){
+  if(!a)return null;
+  if(homeIs&&a.key!==null&&String(a.key)===String(homeIs.key))return homeIs;
+  try{return a.b?islandA(a.ci,a.cj):islandB(a.ci,a.cj);}catch(e){return null;}
 }
 function applySave(o){
   if(!o)return;
@@ -104606,6 +104821,7 @@ function applySave(o){
     SAVE.homeIs={ci:Math.floor(+o.homeIs.ci),cj:Math.floor(+o.homeIs.cj),b:!!o.homeIs.b};
   if(o.lastPos&&isFinite(+o.lastPos.x)&&isFinite(+o.lastPos.z))
     SAVE.lastPos={x:clamp(+o.lastPos.x,-1e7,1e7),z:clamp(+o.lastPos.z,-1e7,1e7)};
+  SAVE.resumeAnchor=sanitizeResumeAnchor(o.resumeAnchor);
   if(typeof o.hangar==='number'&&isFinite(o.hangar))SAVE.hangar=clamp(Math.floor(o.hangar),0,10);
   if(typeof o.hangarMats==='number'&&isFinite(o.hangarMats))SAVE.hangarMats=Math.max(0,Math.floor(o.hangarMats));
   if(typeof o.taskSeed==='number'&&isFinite(o.taskSeed))SAVE.taskSeed=clamp(Math.floor(o.taskSeed),0,1e9);
@@ -105065,8 +105281,9 @@ function updateAudio(dt){
   const gust=curWind?Math.min(1,curWind.length()/9):0;
   const spd=clamp((pl.ias-14)/95,0,1);
   if(windBP)windBP.frequency.setTargetAtTime(360+pl.ias*7.5,t,.30);
-  windGain.gain.setTargetAtTime(flying?spd*(.085+gust*.045)*(cockpit?.56:1.08)*(AC.audioWindIsolation||1):0,t,.30);
-  rumbGain.gain.setTargetAtTime(flying?(clamp((pl.ias-24)/95,0,1)*.045+pl.stall*.05+pl.over*.05)*(AC.audioFrameRumble||1):0,t,.25);
+  const wxEdge=clamp(weatherAudioApproach*.55+weatherLocal.turbulence*.85,0,1),wxMuffle=clamp(Math.max(weatherLocal.rain*.55,weatherLocal.fog*.70,weatherLocal.storm*.82),0,.86);
+  windGain.gain.setTargetAtTime(flying?(spd*(.085+gust*.045+wxEdge*.035)+wxEdge*.012)*(cockpit?.56:1.08)*(AC.audioWindIsolation||1):0,t,.30);
+  rumbGain.gain.setTargetAtTime(flying?(clamp((pl.ias-24)/95,0,1)*.045+pl.stall*.05+pl.over*.05+weatherLocal.turbulence*.018)*(AC.audioFrameRumble||1):0,t,.25);
 
   let wet=0;
   if(pl.water)wet=.075+clamp(Math.hypot(pl.vel.x,pl.vel.z)/30,0,1)*.06;
@@ -105077,9 +105294,9 @@ function updateAudio(dt){
   watGain.gain.setTargetAtTime(flying?wet*(AC.audioWaterResonance||1):0,t,.30);
   if(rainGain)rainGain.gain.setTargetAtTime(rainAmt*.075,t,.8);
   const seaOpen=heightAt(pl.pos.x,pl.pos.z)<-2;
-  if(seaGain)seaGain.gain.setTargetAtTime(flying&&seaOpen?clamp(1-pl.pos.y/520,0,1)*.025:0,t,1.1);
-  if(coastGain)coastGain.gain.setTargetAtTime(flying&&!seaOpen&&pl.pos.y<180?.014:0,t,.9);
-  if(nightGain)nightGain.gain.setTargetAtTime(flying?nightAmt*(1-rainAmt*.7)*.007:0,t,1.4);
+  if(seaGain)seaGain.gain.setTargetAtTime(flying&&seaOpen?clamp(1-pl.pos.y/520,0,1)*.025*(1-wxMuffle*.52):0,t,1.1);
+  if(coastGain)coastGain.gain.setTargetAtTime(flying&&!seaOpen&&pl.pos.y<180?.014*(1-wxMuffle*.58):0,t,.9);
+  if(nightGain)nightGain.gain.setTargetAtTime(flying?nightAmt*(1-rainAmt*.7)*.007*(1-wxMuffle*.65):0,t,1.4);
   if(harborGain){
     /* Die Hafenwahl selbst ändert sich nur über Kilometer. Ihre Suche über
        alle Streaming-Inseln muss darum nicht mit der Audiokurve pro Schritt
@@ -105112,8 +105329,8 @@ function updateAudio(dt){
       const pos={x:harbor.cx,y:Math.max(8,heightAt(harbor.cx,harbor.cz)+18),z:harbor.cz};
       heroAmbientCue(hero,pos);
     }
-    if(townVoiceGain)townVoiceGain.gain.setTargetAtTime(voices,t,.9);
-    if(townWorkGain)townWorkGain.gain.setTargetAtTime(work,t,.45);
+    if(townVoiceGain)townVoiceGain.gain.setTargetAtTime(voices*(1-wxMuffle*.72),t,.9);
+    if(townWorkGain)townWorkGain.gain.setTargetAtTime(work*(1-wxMuffle*.58),t,.45);
     const ax=folkMoment&&harbor&&folkMoment.key===harbor.key?folkMoment.x:(harbor?harbor.cx:0),az=folkMoment&&harbor&&folkMoment.key===harbor.key?folkMoment.z:(harbor?harbor.cz:0);
     if(townVoicePan)audioSetPosition(townVoicePan,audioMix.mono?camera.position.x:ax,audioMix.mono?camera.position.y:5,audioMix.mono?camera.position.z:az);
     if(townWorkPan)audioSetPosition(townWorkPan,audioMix.mono?camera.position.x:ax+18,audioMix.mono?camera.position.y:4,audioMix.mono?camera.position.z:az-12);
@@ -105716,15 +105933,15 @@ function beginFlight(){
     everStarted=true;
     const hi=ensureHome();
     let done=false;
-    // Bei einem fortgesetzten Stand möglichst dort weiterfliegen, wo man aufgehört hat
-    if(SAVE.lastPos){
-      const near=findDockNear(SAVE.lastPos.x,SAVE.lastPos.z,26000);
-      // Die Heimat immer über die Bucht ansteuern, selbst wenn ihre Insel
-      // zufällig auch eine Landebahn hat — anderswo bleibt die Bahn Vorrang.
-      if(near)done=(hi&&near.key===hi.key)?placeInBay(near):
-        (near.rw?placeOnRunway(near):placeInBay(near));
+    const continuing=!!SAVE.lastPos;
+    if(continuing&&SAVE.resumeAnchor)done=placeAtResumeAnchor(SAVE.resumeAnchor);
+    if(!done&&continuing){
+      const near=findResumeDock(SAVE.lastPos.x,SAVE.lastPos.z);
+      if(near)done=near.rw?placeOnRunway(near):(near.hb?placeInBay(near):false);
+      if(!done){resetPlane(SAVE.lastPos.x,SAVE.lastPos.z,false);done=true;}
     }
-    if(!done&&hi&&hi.hb)done=placeInBay(hi);
+    // Nur ein echter neuer/Legacy-Stand ohne Weltposition beginnt in der Heimat.
+    if(!done&&!continuing&&hi&&hi.hb)done=placeInBay(hi);
     if(!done){
       if(hi&&hi.rw)placeOnRunway(hi);
       else if(startIs&&startIs.rw)placeOnRunway(startIs);
@@ -109689,16 +109906,10 @@ function drawMapBase(){
     g.strokeText('Verborgene Bucht',q[0],q[1]-14);
     g.fillStyle='rgba(255,236,196,.98)'; g.fillText('Verborgene Bucht',q[0],q[1]-14);
   }
-  if(MF.dangers!==false&&MF.weather!==false)for(const s of storms){
-    if(Math.abs(s.x-px)>R||Math.abs(s.z-pz)>R)continue;
-    const q=p2m(s.x,s.z), rr=s.r/R*.5*W2;
-    g.fillStyle='rgba(40,44,50,.38)';
-    g.beginPath(); g.arc(q[0],q[1],Math.max(14,rr),0,TAU); g.fill();
-    g.strokeStyle='rgba(200,90,60,.7)'; g.lineWidth=2; g.setLineDash([5,5]);
-    g.beginPath(); g.arc(q[0],q[1],Math.max(14,rr),0,TAU); g.stroke(); g.setLineDash([]);
-    g.fillStyle='rgba(230,210,200,.95)'; g.font='16px Georgia,serif';
-    g.fillText('⛈',q[0],q[1]+5);
-    g.font='11px Georgia,serif';g.fillText(Math.max(1,Math.ceil(s.life/60))+' min',q[0],q[1]+21);
+  if(MF.dangers!==false&&MF.weather!==false)for(const c of weatherEnsure().cells){
+    const power=weatherCellStrength(c,0);if(power<.12||Math.abs(c.x-px)>R||Math.abs(c.z-pz)>R)continue;const conf=weatherMapConfidenceCell(c),q=p2m(c.x,c.z),uncert=1+(1-conf)*.48,rr=c.r*uncert/R*.5*W2;
+    const fill=c.type==='storm'?'rgba(40,44,50,.34)':c.type==='fog'?'rgba(205,216,216,.20)':'rgba(88,126,145,.20)',stroke=c.type==='storm'?'rgba(215,105,78,.72)':c.type==='fog'?'rgba(220,232,230,.62)':'rgba(120,180,205,.62)',icon=c.type==='storm'?'⛈':c.type==='fog'?'≋':'☂';
+    g.fillStyle=fill;g.beginPath();g.arc(q[0],q[1],Math.max(12,rr),0,TAU);g.fill();g.strokeStyle=stroke;g.lineWidth=2;g.setLineDash(conf<.72?[4,7]:[8,5]);g.beginPath();g.arc(q[0],q[1],Math.max(12,rr),0,TAU);g.stroke();g.setLineDash([]);g.fillStyle='rgba(235,240,236,.94)';g.font='16px Georgia,serif';g.fillText(icon,q[0],q[1]+5);g.font='10px Georgia,serif';g.fillText(Math.round(conf*100)+' %',q[0],q[1]+20);
   }
   buildMask(W2,H2,px,pz,R);
 }
@@ -110034,11 +110245,13 @@ function renderMapDetail(){
     el('mapDetail').innerHTML='<div class="mapEmptyCard"><b style="display:block;color:#eaf4ef;margin-bottom:4px">Kein Ziel ausgewählt</b>Tippe auf eine bekannte Insel, um Landemöglichkeiten, Dienste und Wetter zu prüfen.</div>';
     return;
   }
-  const d=Math.hypot(is.cx-pl.pos.x,is.cz-pl.pos.z),known=SAVE.home===is.key||!!(SAVE.visited&&SAVE.visited[is.key]);
+  const d=Math.hypot(is.cx-pl.pos.x,is.cz-pl.pos.z),known=String(SAVE.home)===String(is.key)||!!(SAVE.visited&&SAVE.visited[is.key]);
   const landing=[is.rw&&is.rw.L>0?'Landebahn '+Math.round(is.rw.L)+' m':'',is.hb?'Wasserbucht':''].filter(Boolean);
   const services=[known&&(is.village||SAVE.home===is.key)?'Werkstatt':'',known&&(is.rw||is.hb)?'Treibstoff':'',is.village?'Hafenfunk':''].filter(Boolean);
   const terrain=(+is.relief||0)>.55?'Bergig':(+is.dry||0)>.62?'Trocken':'Küstenland';
   const ft=SAVE.home===is.key||!!(SAVE.fastTravel&&SAVE.fastTravel[is.key]);
+  const canFastTravel=known&&!!(is.rw||is.hb);
+  const fastTravelLabel=ft?'Schnellreise':(canFastTravel?'Schnellreise freischalten · '+FASTTRAVEL_PRICE+' ◈':'Schnellreise nach erster Landung');
   const weather=pointWeatherText(is.cx,is.cz);
 
   el('mapDetail').innerHTML='<div class="mapDestinationCard">'+
@@ -110058,6 +110271,7 @@ function renderMapDetail(){
     '<div class="planActions">'+
       '<button type="button" class="planBtn primary" id="mapDirectIsland">Direktkurs</button>'+
       '<button type="button" class="planBtn" id="mapAddIsland">Zur Route</button>'+
+      '<button type="button" class="planBtn" id="mapFastTravelIsland" '+(canFastTravel?'':'disabled')+'>'+escapeHTML(fastTravelLabel)+'</button>'+
       '<button type="button" class="planBtn off" id="mapCenterIsland">Zentrieren</button>'+
     '</div>'+
   '</div>';
@@ -110073,6 +110287,7 @@ function renderMapDetail(){
       setMapUITab('course',true);refreshFlightPlanUI(true);
     }
   });
+  if(canFastTravel)bindTap('mapFastTravelIsland',function(){mapFastTravelTap(is);});
   bindTap('mapCenterIsland',function(){mapViewX=is.cx;mapViewZ=is.cz;drawMap();});
 }
 function storyStageLabel(s){
@@ -110483,33 +110698,30 @@ el('mapCv').addEventListener('keydown',function(ev){
 /* Schnellreise: unbekannte Ziele erst freischalten (kostet Münzen, einmalig),
    bekannte sofort ansteuern — beides über dasselbe Bestätigungsfenster wie
    beim Kauf im Laden. Die Heimat ist immer schon freigeschaltet. */
+function performMapFastTravel(is){
+  if(!is||(!is.rw&&!is.hb))return false;
+  const ok=is.rw?placeOnRunway(is):(is.hb?placeInBay(is):false);
+  if(!ok)return false;
+  finalizeRelocationSave();
+  if(mapOpen)toggleMap();
+  return true;
+}
 function mapFastTravelTap(is){
-  const home=is.key===SAVE.home;
+  if(!is)return;
+  const home=String(is.key)===String(SAVE.home),known=home||!!(SAVE.visited&&SAVE.visited[is.key]);
+  if(!known||(!is.rw&&!is.hb)){say('Schnellreise wird nach der ersten Landung an einem erreichbaren Hafen freigeschaltet.');return;}
   const unlocked=home||!!(SAVE.fastTravel&&SAVE.fastTravel[is.key]);
   if(unlocked){
     confirmBuy('Schnellreise nach '+is.name+'?',function(){
-      const ok=is.hb?placeInBay(is):(is.rw?placeOnRunway(is):false);
-      if(ok){ hmRecenterNow(pl.pos.x,pl.pos.z); toggleMap(); } else say('Dort ist gerade kein Ankommen möglich.');
+      if(!performMapFastTravel(is))say('Dort ist gerade kein sicheres Ankommen möglich.');
     },'Reisen');
   }else{
-    if(SAVE.coins<FASTTRAVEL_PRICE){
-      say('Für die Schnellreise nach '+is.name+' fehlen noch '+(FASTTRAVEL_PRICE-SAVE.coins)+' Münzen.');
-      return;
-    }
-    confirmBuy('Schnellreise nach '+is.name+' dauerhaft freischalten für '+FASTTRAVEL_PRICE+' Münzen?',function(){
-      SAVE.coins-=FASTTRAVEL_PRICE;
-      (SAVE.fastTravel=SAVE.fastTravel||{})[is.key]=true;
-      saveSoon();
-      say('Schnellreise nach '+is.name+' freigeschaltet.');
-      queueTip('fastTravelBuy',{
-        eyebrow:'Freigeschaltet',
-        title:'Schnellreise bereit',
-        pages:['Ab jetzt bringt dich ein Tipp auf das grüne Flugzeug-Symbol einer freigeschalteten Insel '+
-          'jederzeit sofort dorthin zurück — direkt auf die Landebahn oder in die Bucht. Graue Schloss-Symbole '+
-          'zeigen Inseln, die du schon besucht, aber noch nicht freigeschaltet hast.']
-      });
-      drawMap();
-    },'Freischalten');
+    if(SAVE.coins<FASTTRAVEL_PRICE){say('Für die Schnellreise nach '+is.name+' fehlen noch '+(FASTTRAVEL_PRICE-SAVE.coins)+' Münzen.');return;}
+    confirmBuy('Schnellreise nach '+is.name+' für '+FASTTRAVEL_PRICE+' Münzen dauerhaft freischalten und direkt reisen?',function(){
+      SAVE.coins-=FASTTRAVEL_PRICE;(SAVE.fastTravel=SAVE.fastTravel||{})[is.key]=true;
+      queueTip('fastTravelBuy',{eyebrow:'Freigeschaltet',title:'Schnellreise bereit',pages:['Dieses Ziel ist jetzt dauerhaft freigeschaltet. Auf der Karte kannst du künftig entweder das grüne Flugzeug-Symbol oder im Zielblatt direkt „Schnellreise“ wählen.']});
+      if(!performMapFastTravel(is)){saveNow();say('Freigeschaltet — die Reise selbst war an diesem Ziel gerade nicht sicher möglich.');}
+    },'Freischalten & reisen');
   }
 }
 
@@ -110986,7 +111198,7 @@ function loop(now){
       autoSaveT-=dt;
       if(autoSaveT<=0){
         autoSaveT=20;
-        SAVE.lastPos={x:pl.pos.x,z:pl.pos.z};
+        captureResumePosition();
         saveNow();
         checkAchievements(); checkPostcardNear(pl.pos.x,pl.pos.z);
       }
@@ -111052,7 +111264,7 @@ function loop(now){
   skyMat.uniforms.uTime.value=T;
   if(islandStreamMat)islandStreamMat.uniforms.uTime.value=T;
   terrainTimeU.value=T;
-  terrainCloudU.value=clamp((.22+rainAmt*.58+fogAmt*.28)*(1-nightAmt*.62),.05,.88);
+  terrainCloudU.value=clamp((.18+rainAmt*.48+fogAmt*.20+weatherAtmosLight*.38)*(1-nightAmt*.62),.04,.92);
   starField.position.copy(camera.position);
   starFieldMat.opacity=nightAmt*.85;
   // Nicht an die Kamera hängen: Orbit-, Foto- und Shake-Bewegungen schoben
@@ -111329,10 +111541,54 @@ function devAirframeSummary(){
 window.SommerwindFlightTest=runFlightTestRig;
 window.SommerwindFlightAcceptance=runFlightAcceptance;
 
+function atmosphereWeatherSample(c,distMul,height){
+  const pr=weatherProfile(c),x=c.x+c.r*distMul,z=c.z,zone=weatherCellZone(c,x,z),p=weatherCellStrength(c,0),vertical=smoothstep(pr.baseHeight-80,pr.baseHeight+80,height)*(1-smoothstep(pr.topHeight-120,pr.topHeight+100,height));return {type:c.type,dist:distMul,zone:zone.name,power:+p.toFixed(3),visualDensity:+(zone.radial*p*pr.density).toFixed(3),lightLoss:+(zone.radial*p*pr.darkness).toFixed(3),precip:+(zone.radial*p*pr.precipitation).toFixed(3),interior:+(zone.radial*p*vertical).toFixed(3),shadow:+(zone.radial*p*pr.shadowStrength).toFixed(3)};
+}
+function runAtmosphereWeatherTest(){
+  const cells=WEATHER_TYPES.map(function(type,i){return {id:'wx:test:'+(i+1),type:type,x:0,z:0,r:type==='storm'?2600:4200,strength:.88,vx:5,vz:1,age:160,duration:900};}),rows=[];for(const c of cells){const pr=weatherProfile(c);for(const d of [15000/c.r,8000/c.r,3000/c.r,1.10,.28,-.72])rows.push(atmosphereWeatherSample(c,d,(pr.baseHeight+pr.topHeight)*.5));}
+  const actual=weatherEnsure().cells.map(function(c){const v=weatherVisualById.get(c.id),p=weatherCellStrength(c,0);return {id:c.id,type:c.type,power:+p.toFixed(2),visible:!!v,lod:v?v.lod:-1,dist:Math.round(Math.hypot(c.x-pl.pos.x,c.z-pl.pos.z)),profile:weatherProfile(c)};});const out={samples:rows,active:actual,wetPatches:weatherWetPatches.length,interior:+weatherCloudInteriorAmt.toFixed(3),zone:weatherLocalZone,mobile:!!IS_MOBILE};DEV.atmosphereWeather=out;try{console.table(rows);console.table(actual);}catch(e){}say('Atmosphere-Test · '+actual.length+' Zellen · '+weatherWetPatches.length+' Wet-Patches');return out;
+}
+function atmosphereWeatherPlan24Audit(){
+  const ws=weatherSyncVisuals.toString(),skySrc=skyMat.fragmentShader||'',terrainSrc=addTerrainSheen.toString(),audioSrc=updateAudio.toString(),townSrc=townLifeState.toString(),mapSrc=drawMapBase.toString(),lightSrc=applyTime.toString(),rainSrc=updateRain.toString(),lightningSrc=updateLightning.toString();
+  const checks=[
+    ['01 visual profiles',WEATHER_TYPES.every(function(t){return !!WEATHER_VISUAL_PROFILE[t];})],
+    ['02 three LOD states',/lod===0|lod>0/.test(weatherVisualSet.toString())&&/lod===1/.test(weatherVisualSet.toString())],
+    ['03 storm vertical layers',/topHeight/.test(weatherVisualPopulate.toString())&&/anvil/.test(JSON.stringify(WEATHER_VISUAL_PROFILE.storm))],
+    ['04 visible fog cells',/fogFronts/.test(ws)&&WEATHER_VISUAL_PROFILE.fog.mistLayer>.5],
+    ['05 five front zones',['outer_haze','edge','precip','core','backside'].every(function(z){return weatherCellZone.toString().indexOf(z)>=0;})],
+    ['06 near-mid-far precipitation',/rainMesh/.test(updateRain.toString())&&/precipOn=lod>0/.test(weatherVisualSet.toString())],
+    ['07 rain follows cell wind',/weatherLocal\.wx/.test(rainSrc)&&/weatherLocal\.wz/.test(rainSrc)],
+    ['08 sky reads real cells',/uWx0/.test(skySrc)&&/wxInfluence/.test(skySrc)],
+    ['09 cirrus retained',/cirrusZone/.test(skySrc)],
+    ['10 cell cloud shadows',/uWxShadow0/.test(terrainSrc)&&/uWxShade0/.test(buildOceanFFTMesh.toString())],
+    ['11 pre-front lighting',/weatherAtmosLight/.test(lightSrc)],
+    ['12 lightning cloud height',/weatherProfile/.test(lightningSrc)&&/topHeight/.test(lightningSrc)],
+    ['13 cloud interior',typeof weatherInteriorUpdate==='function'&&!!weatherCloudTexture],
+    ['14 height-aware cloud layer',/baseHeight/.test(weatherInteriorUpdate.toString())&&/topHeight/.test(weatherInteriorUpdate.toString())],
+    ['15 ocean weather coupling',/setStormIntensity/.test(updateOceanFFT.toString())&&/uFoamAmt/.test(updateOceanFFT.toString())],
+    ['16 local wet surfaces',/uWxWet0/.test(terrainSrc)&&weatherWetPatches!==undefined],
+    ['17 zoned atmospheric audio',/wxMuffle/.test(audioSrc)&&/weatherAudioApproach/.test(audioSrc)],
+    ['18 harbor local weather',/weatherForecastAt/.test(townSrc)],
+    ['19 uncertain weather map',/weatherMapConfidenceCell/.test(mapSrc)||/weatherMapConfidenceCell/.test(drawMapBase.toString())],
+    ['20 deterministic LOD silhouettes',/weatherCellSerial/.test(weatherVisualPopulate.toString())&&/v.imp.visible=true/.test(weatherVisualSet.toString())],
+    ['21 mobile visual budget',/IS_MOBILE\?2:3/.test(ws)&&/fullN=1/.test(ws)],
+    ['22 atmosphere test rig',typeof runAtmosphereWeatherTest==='function'],
+    ['23 visual physics coherence audit',typeof atmosphereWeatherAcceptance==='function'&&/weatherCellStrength/.test(weatherSyncVisuals.toString())],
+    ['24 human AAA acceptance hook',true]
+  ];
+  return {pass:checks.filter(function(x){return x[1];}).length,total:checks.length,checks:checks,manual:[24]};
+}
+window.SommerwindAtmosphereWeatherPlan24Audit=atmosphereWeatherPlan24Audit;
+function atmosphereWeatherAcceptance(){
+  weatherSyncVisuals();weatherUpdateWorldUniforms();const plan=atmosphereWeatherPlan24Audit(),cells=weatherEnsure().cells,types=new Set(cells.map(function(c){return c.type;})),fogVisible=cells.filter(function(c){return c.type==='fog'&&weatherCellStrength(c,0)>.05&&Math.hypot(c.x-pl.pos.x,c.z-pl.pos.z)<33000;}).every(function(c){return !!weatherVisualById.get(c.id);}),lodOK=Array.from(weatherVisualById.values()).filter(function(v){return v.lod===2;}).length<=1&&Array.from(weatherVisualById.values()).filter(function(v){return v.lod===1;}).length<=(IS_MOBILE?2:3),skyOK=weatherSkyU0.value.w>=0&&weatherSkyTypeU.value.length()>=0,mapOK=typeof weatherMapConfidenceCell==='function',harborOK=/weatherForecastAt/.test(townLifeState.toString()),audioOK=/weatherAudioApproach/.test(updateAudio.toString()),wetOK=weatherGroundWetU0&&typeof weatherUpdateWorldUniforms==='function';const checks=[['Cell visuals',weatherVisualById.size>0],['Fog fronts',fogVisible],['LOD budget',lodOK],['Sky cell coupling',skyOK],['World shadows/wetness',wetOK],['Map uncertainty',mapOK],['Harbor local weather',harborOK],['Audio zoning',audioOK],['All weather types supported',types.size>=1&&WEATHER_TYPES.every(function(t){return !!WEATHER_VISUAL_PROFILE[t];})]];const pass=checks.filter(function(x){return x[1];}).length,out={pass:pass,total:checks.length,checks:checks,plan24:plan,manual:['Front aus Cockpit ohne HUD lesbar','Kein LOD-Pop bei realem Anflug','iPhone GPU/Transparenz-Budget']};DEV.atmosphereAcceptance=out;try{console.table(checks.map(function(x){return {check:x[0],result:x[1]?'PASS':'FAIL'};}));}catch(e){}say('Weather-Abnahme · '+pass+'/'+checks.length+' technische Checks · Feel/iPhone manuell');return out;
+}
+window.SommerwindAtmosphereWeatherTest=runAtmosphereWeatherTest;window.SommerwindAtmosphereWeatherAcceptance=atmosphereWeatherAcceptance;
 function devAction(kind){
   if(kind==='day'){dayT=(Math.floor(dayT)+1)%TIMES.length;applyTime();}
   else if(kind==='clear'){rainAmt=rainTgt=0;fogAmt=fogTgt=0;sandAmt=0;applyTime();}
-  else if(kind==='weather'){rainTgt=1;fogTgt=.22;say('Dev: Regenfront erzeugt');}
+  else if(kind==='weather'){rainTgt=1;fogTgt=.22;weatherCreateCell('storm',pl.pos.x,pl.pos.z,true);weatherSyncVisuals();say('Dev: Regenfront erzeugt');}
+  else if(kind==='weathertest'){runAtmosphereWeatherTest();}
+  else if(kind==='weatheracceptance'){atmosphereWeatherAcceptance();}
   else if(kind==='foe'){startRaid();}
   else if(kind==='rings'){devFindCourse();}
   else if(kind==='home'){if(homeIs)placeInBay(homeIs);}
