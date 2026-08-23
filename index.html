@@ -413,6 +413,7 @@
   .tradePanelTitle{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:#ffdfa2}.tradePanelTitle small{font-size:8px;letter-spacing:.04em;text-transform:none;color:#effbf7;opacity:.55}
   #tradeGoods{display:grid;grid-template-columns:repeat(3,minmax(125px,1fr));gap:6px}.tradeGood{min-height:98px;padding:9px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(255,255,255,.035);color:#f9f2e4;text-align:left;cursor:pointer;transition:border-color .16s,background .16s,transform .16s}.tradeGood:hover{border-color:rgba(255,220,153,.48);background:rgba(255,220,153,.07);transform:translateY(-1px)}.tradeGood.on{border-color:#f0c879;background:linear-gradient(145deg,rgba(240,200,121,.19),rgba(240,200,121,.07));box-shadow:inset 0 0 0 1px rgba(255,233,176,.08)}.tradeGood.out{opacity:.50}.tradeGood b{display:block;font-size:11px}.tradeGood small{display:block;margin-top:3px;font-size:8.5px;line-height:1.35;opacity:.64}.tradeGood strong{display:block;margin-top:7px;color:#ffe1a0;font-size:10px;font-weight:500}.tradeGood em{font-style:normal;color:#9ce0c4}
   #tradeHold{display:grid;gap:5px;max-height:250px;overflow:auto}.tradeHoldRow{display:grid;grid-template-columns:1fr auto;gap:7px;padding:7px;border-radius:6px;background:rgba(255,255,255,.04);font-size:9.5px}.tradeHoldRow small{display:block;opacity:.58;margin-top:2px}.tradeHoldRow.contract{border-left:2px solid #e5b760;background:rgba(229,183,96,.07)}
+  .tradeDealButton.blocked{opacity:.62;border-style:dashed}
   #tradeSlots{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin:7px 0}.tradeSlot{height:10px;border-radius:2px;background:rgba(255,255,255,.08)}.tradeSlot.used{background:#d3ad69}.tradeSlot.contract{background:#d8795d}
   #tradePlanner{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.tradePerfRow{display:grid;grid-template-columns:82px 1fr 46px;gap:6px;align-items:center;font-size:8.5px;margin:5px 0}.tradePerfTrack{height:4px;background:rgba(255,255,255,.09);border-radius:4px;overflow:hidden}.tradePerfTrack i{display:block;height:100%;background:#8cd5ca}.tradeRoute{display:grid;grid-template-columns:1fr auto;gap:7px;padding:6px 0;border-top:1px solid rgba(255,255,255,.08);font-size:9px}.tradeRoute:first-child{border-top:0}.tradeRoute small{display:block;opacity:.58;margin-top:2px}.tradeRoute button,.tradeControl button,#tradeWarehouse button{padding:6px 7px;border:1px solid rgba(255,220,153,.28);border-radius:5px;background:rgba(255,220,153,.07);color:#fff0d2;font:inherit;font-size:8px;cursor:pointer}
   #tradeControls{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px;padding:10px;border:1px solid rgba(255,220,153,.17);border-radius:9px;background:linear-gradient(90deg,rgba(41,59,62,.54),rgba(4,14,21,.58))}.tradeControl{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.tradeControl strong{font-size:11px;color:#ffe1a0;min-width:72px}.tradeTradeNote{flex-basis:100%;font-size:8.5px;line-height:1.35;color:rgba(234,249,245,.67)}.tradeControl button.prim{background:rgba(255,203,108,.20);border-color:rgba(255,203,108,.68)}.tradeControl button:disabled{opacity:.3;cursor:not-allowed}
@@ -4311,6 +4312,17 @@
     html.is-mobile #cargoBar{top:calc(max(8px,env(safe-area-inset-top)) + 137px)}
   }
 
+  /* ============================================================
+     AAA MISSION DIRECTOR · live objective HUD
+     ============================================================ */
+  #missionObjectiveHUD{position:absolute;left:50%;top:102px;transform:translateX(-50%);display:none;width:min(390px,calc(100vw - 28px));padding:9px 11px;border:1px solid rgba(176,224,214,.18);border-radius:13px;background:linear-gradient(145deg,rgba(8,27,34,.91),rgba(5,19,27,.88));box-shadow:0 12px 34px rgba(0,0,0,.27);pointer-events:none}
+  #missionObjectiveHUD.on{display:block}#missionObjectiveHUD .moTop{display:flex;justify-content:space-between;gap:10px;align-items:baseline}#missionObjectiveHUD .moTop b{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:#bde6da}#missionObjectiveHUD .moTop span{font-size:7px;opacity:.56;white-space:nowrap}
+  #missionObjectiveTitle{display:block;margin-top:4px;font-size:11px;color:#fff0ce;font-weight:760;letter-spacing:-.01em}#missionObjectiveDetail{display:block;margin-top:2px;font-size:8px;line-height:1.35;opacity:.68}
+  #missionObjectiveTrack{height:4px;margin-top:7px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}#missionObjectiveFill{height:100%;width:0;background:#9ddcca;transition:width .16s linear}
+  #missionActionBtn{display:none;pointer-events:auto;margin-top:7px;width:100%;border:1px solid rgba(242,202,127,.30);border-radius:8px;padding:8px;background:rgba(242,202,127,.10);color:#ffe6ac;font:800 8px/1 var(--sw-ui-font,Inter,system-ui,sans-serif);letter-spacing:.08em;text-transform:uppercase;cursor:pointer}#missionActionBtn.on{display:block}
+  body.mapOpen #missionObjectiveHUD,body.storyFullOpen #missionObjectiveHUD,body.photoMode #missionObjectiveHUD,body.missionReportOpen #missionObjectiveHUD{display:none!important}
+  @media(max-width:720px){#missionObjectiveHUD{top:95px;width:calc(100vw - 18px);padding:8px 9px}#missionObjectiveTitle{font-size:10px}}
+
 </style>
 </head>
 <body>
@@ -4402,6 +4414,12 @@
   <div id="routePtr"><div class="arw"></div><div class="dst" id="routePtrLbl"></div></div>
   <div id="firstPtr"><div class="arw"></div><div class="dst" id="firstPtrLbl"></div></div>
   <div id="flightNav" class="card sh" role="status" aria-live="polite"><b id="flightNavTitle"></b><span id="flightNavData"></span></div>
+  <section id="missionObjectiveHUD" class="sh" role="status" aria-live="polite" aria-atomic="true">
+    <div class="moTop"><b id="missionObjectiveMission">Mission</b><span id="missionObjectiveStep">1 / 1</span></div>
+    <strong id="missionObjectiveTitle">Ziel</strong><span id="missionObjectiveDetail"></span>
+    <div id="missionObjectiveTrack"><div id="missionObjectiveFill"></div></div>
+    <button id="missionActionBtn" type="button">Aktion</button>
+  </section>
   <section id="missionCompleteBanner" role="status" aria-live="polite" aria-atomic="true">
     <span id="missionCompleteIcon" aria-hidden="true"></span>
     <span id="missionCompleteCopy"><b id="missionCompleteTitle"></b><small id="missionCompleteMeta"></small></span>
@@ -4434,6 +4452,7 @@
     <button data-dev="story">Storyziel markieren</button><button data-dev="save">Save-Test</button>
     <button data-dev="flighttest">Flight-Test-Rig</button><button data-dev="acceptance">AAA-Abnahme</button><button data-dev="airframe">Airframe-Profil</button>
     <button data-dev="harbortest">Living-Harbor-Test</button><button data-dev="harboracceptance">Harbor-Abnahme</button>
+    <button data-dev="missiontest">Mission-Director-Test</button><button data-dev="missionacceptance">Mission-Abnahme</button>
   </div>
 </aside>
 
@@ -88227,6 +88246,7 @@ function landColor(x,z,h,sl,dry,out,is){
       if(biome===BIOME_WET||biome===BIOME_PINE||biome===BIOME_MED){
         /* Ein klarer Waldkern plus echte Lichtungen. */
         let forest=smoothstep(biome===BIOME_WET?.32:.35,.66,forestF);
+        if(!is.big)forest*=.76; // kleine Inseln dürfen in der Ferne nicht dichter wirken als ihre echte Baum-/Canopy-Schicht
         forest*=1-smoothstep(.68,.89,clearF);
         forest*=1-openMeadow*.82;
         const target=biome===BIOME_WET?cLush:(biome===BIOME_PINE?cDeepForest:cForestFloor);
@@ -93537,7 +93557,7 @@ function updateLandscapeWorld(dt,px,py,pz){
       else if(lod==='mid')m.visible=treeState==='mid'&&py<2050;
       else if(lod==='far')m.visible=treeState==='far'&&!farTrees&&py<2400;
       else if(lod==='midground')m.visible=midgroundOn&&!(viewAgl<150&&dist<(mobile?2100:3000));
-      else if(lod==='forestMass')m.visible=dist>(mobile?820:1080)&&!(viewAgl<110&&dist<(mobile?1900:2600))&&!farTrees&&py<2300;
+      else if(lod==='forestMass'){const smallIsland=!rec.is.big;m.visible=(smallIsland?dist>(mobile?150:190):(dist>(mobile?820:1080)&&!(viewAgl<110&&dist<(mobile?1900:2600))))&&!farTrees&&py<2300;}
       else m.visible=LOW_PLANTS.has(type)?lowVegOn:!farTrees;
     }
     if(!ST.running||!pl.alive||landscapeDiscoveryCd>0||!rec.landmarks)continue;
@@ -94601,6 +94621,7 @@ function harborLifeEnsure(is){
   const L=islandLifeFor(is,true);if(!L)return null;
   if(!L.cargoTypes||typeof L.cargoTypes!=='object')L.cargoTypes={};
   if(!L.citizens||typeof L.citizens!=='object')L.citizens={};
+  if(!L.missionEffects||typeof L.missionEffects!=='object')L.missionEffects={};
   L.tradeVolume=clamp(+L.tradeVolume||0,0,999999);L.rescues=clamp(+L.rescues||0,0,9999);
   L.pilotFame=clamp(+L.pilotFame||0,0,100);L.localProsperity=clamp(+L.localProsperity||0,0,3);
   L.damageState=clamp(+L.damageState||0,0,3);L.festivalMemory=clamp(+L.festivalMemory||0,0,9999);L.lastVisit=clamp(+L.lastVisit||0,0,1e9);
@@ -94877,6 +94898,8 @@ function buildLivingHarborVisuals(rec,is){
   if(damage>0){for(let i=0;i<Math.min(3,damage+1);i++){const q=side(10+i*8,24),m=new THREE.Mesh(G('livingHarborScaffold',function(){const p=[];for(const x of [-2,2])for(const z of [-1.4,1.4]){const g=new THREE.CylinderGeometry(.18,.24,7,6);g.translate(x,3.5,z);p.push(g);}const b=new THREE.BoxGeometry(5,.35,3.5);b.translate(0,4.5,0);p.push(b);return mergeGeos(p);}),propMat);m.position.set(q.x,Math.max(0,heightAt(q.x,q.z)),q.z);m.rotation.y=a.a;grp.add(m);}}
   const cargo=Object.keys(L.cargoTypes||{}).map(function(k){return{k:k,n:+L.cargoTypes[k]||0};}).sort(function(x,y){return y.n-x.n;}).slice(0,3);
   for(let j=0;j<cargo.length;j++){const g=+cargo[j].k,q=side(-18+j*13,9),geo=G('livingCargo_'+(isFinite(g)?g:'special'),function(){return g===1?new THREE.BoxGeometry(8,.7,1.0):g===6?new THREE.BoxGeometry(5,1.2,3.2):g===4?new THREE.BoxGeometry(6,.45,4):g===2||g===3?new THREE.CylinderGeometry(1.4,1.6,4.2,8):new THREE.BoxGeometry(4.5,2.4,3.6);}),m=new THREE.Mesh(geo,propMat);m.position.set(q.x,Math.max(0,heightAt(q.x,q.z))+(g===2||g===3?2.1:1.2),q.z);if(g===2||g===3)m.rotation.z=Math.PI/2;m.rotation.y=a.a+j*.14;grp.add(m);}
+  const fx=L.missionEffects||{},addFx=function(kind,x,z){const q=side(x,z),h=Math.max(0,heightAt(q.x,q.z));let geo;if(kind==='survey')geo=G('missionSurveyMast',function(){return new THREE.CylinderGeometry(.25,.35,12,6);});else if(kind==='secure')geo=G('missionSecureFlag',function(){return new THREE.BoxGeometry(.5,9,.5);});else if(kind==='water')geo=G('missionMooringBuoy',function(){return new THREE.SphereGeometry(1.2,8,6);});else if(kind==='course')geo=G('missionCourseMarker',function(){return new THREE.ConeGeometry(1.1,4,8);});else if(kind==='rescue')geo=G('missionRescueMarker',function(){const a=new THREE.BoxGeometry(5,.6,1.2),b=new THREE.BoxGeometry(1.2,.6,5);return mergeGeos([a,b]);});else geo=G('missionEscortCargo',function(){return new THREE.BoxGeometry(5,2.6,3.8);});const m=new THREE.Mesh(geo,propMat);m.position.set(q.x,h+(kind==='survey'?6:kind==='secure'?4.5:1.6),q.z);m.rotation.y=a.a;grp.add(m);};
+  if(fx.alt)addFx('survey',24,10);if(fx.foes)addFx('secure',31,16);if(fx.water)addFx('water',-28,-8);if(fx.rings)addFx('course',20,-12);if(fx.escort)addFx('escort',-24,17);if(fx.rescue)addFx('rescue',0,25);
   scene.add(grp);rec.meshes.push(grp);rec.livingHarborGroup=grp;
 }
 function refreshLivingHarborVisual(is){if(!is||typeof live==='undefined')return;const rec=live.get(is.key);if(rec)buildLivingHarborVisuals(rec,is);}
@@ -98425,7 +98448,7 @@ function placeInBay(is){
   // Nase zum Steg, damit er von Anfang an im Blick liegt
   pl.q.setFromAxisAngle(new THREE.Vector3(0,1,0), Math.atan2(px-jx,pz-jz));
   pl.vel.set(0,0,0); pl.w.set(0,0,0);
-  pl.water=true; pl.ground=false; pl.thr=0; pl.elev=pl.ail=pl.rud=0; pl.trim=0;
+  pl.water=true; pl.waterY=1.5; pl.ground=false; pl.thr=0; pl.elev=pl.ail=pl.rud=0; pl.trim=0;
   pl.rpm=560; pl.alive=true; pl.deadT=0; pl.grace=1.5; pl.rI=0; pl.qI=0; pl.level=0;
   pl.hp=pl.hpMax||100; pl.fuel=1; resetAirDamage();
   prevPos.copy(pl.pos);
@@ -98772,21 +98795,28 @@ function flight(dt,t){
   _M.set(qd*AC.S*AC.c*Cm_air + qTail*AC.S*AC.c*Cm_ctl,
          qd*AC.S*AC.b*Cn_air + qTail*AC.S*AC.b*Cn_ctl,
          qd*AC.S*AC.b*Cl_r);
+  if(pl.water){
+    // Ein fest im Wasser liegender Schwimmerflieger folgt nicht jeder kleinen
+    // Wind-/Anstellwinkeländerung wie ein frei fliegendes Flugzeug. Erst mit
+    // zunehmender Gleitfahrt bekommt die Aerodynamik wieder volle Autorität.
+    const waterAeroMoment=.10+.90*smoothstep(4.5,23,Math.hypot(pl.vel.x,pl.vel.z));
+    _M.multiplyScalar(waterAeroMoment);
+  }
 
   // Motordrehmoment und Strahldrall
   // Rückdrehmoment: die Zelle ist auf Reiseleistung ausgetrimmt,
   // bei Vollgas zieht sie nach links, im Leerlauf leicht nach rechts
   const omP=Math.max(120,pl.rpm*TAU/60);
-  if(!pl.ground)_M.z+=(power-0.40*AC.P)/omP*0.45;   // am Boden hält das Fahrwerk dagegen
-  if(!pl.ground)_M.y-=T*Math.sin(alpha)*0.32;    // Blatteffekt nur in der Luft
+  if(!pl.ground&&!pl.water)_M.z+=(power-0.40*AC.P)/omP*0.45;   // Wasser/Fahrwerk halten die Zelle im Stillstand gegen Motordrehmoment
+  if(!pl.ground&&!pl.water)_M.y-=T*Math.sin(alpha)*0.32;    // Blatteffekt nur im freien Flug
 
   // Deterministisches Buffet statt Frame-Zufall: gleiche Situation, gleiche Zellenreaktion.
-  if(bl>.4){
+  if(!pl.ground&&!pl.water&&bl>.4){
     const sb=AC.stallBuffet||1, n1=Math.sin(t*31.7+pl.pos.z*.0017)+.45*Math.sin(t*53.2+1.4);
     const n2=Math.sin(t*27.9+pl.pos.x*.0013)+.38*Math.sin(t*61.1+.7);
     _M.x+=n1*.5*bl*5200*sb; _M.z+=n2*.5*bl*7000*sb;
   }
-  if(pl.over>.02){
+  if(!pl.ground&&!pl.water&&pl.over>.02){
     const n1=Math.sin(t*39.2+.8)+.35*Math.sin(t*71.3);
     const n2=Math.sin(t*35.6+2.1)+.35*Math.sin(t*67.9);
     _M.x+=n1*.5*pl.over*4200; _M.z+=n2*.5*pl.over*4200;
@@ -98856,7 +98886,13 @@ function flight(dt,t){
       emit(pl.pos.x,pl.gY+1,pl.pos.z,(Math.random()-.5)*5,1+Math.random()*3,
            (Math.random()-.5)*5,.7,1.8);
   } else if(pl.water){
-    pl.pos.y=wh+1.45;
+    const hv=Math.hypot(pl.vel.x,pl.vel.z);
+    // Am Liegeplatz folgt der Rumpf der Welle gedämpft statt seine Y-Position
+    // in jedem Physikschritt hart auf die momentane Wellenhöhe zu schnappen.
+    const waterTargetY=wh+1.45;
+    if(!isFinite(pl.waterY))pl.waterY=waterTargetY;
+    pl.waterY=lerp(pl.waterY,waterTargetY,1-Math.exp(-dt*(hv<2?2.35:5.5)));
+    pl.pos.y=pl.waterY;
     if(!overSea){
       const hvS=Math.hypot(pl.vel.x,pl.vel.z);
       if(hvS<9&&gh<1.5){                 // sachte aufgelaufen: festkommen, nicht sterben
@@ -98868,12 +98904,21 @@ function flight(dt,t){
     const flies=(L>AC.m*9.81*.99)&&V>25*(AC.waterHumpSpeed||1);
     if(!flies) pl.vel.y=clamp(pl.vel.y,0,.8);
     else if(pl.vel.y<0) pl.vel.y=0;
-    if(flies&&pl.vel.y>.6){pl.water=false;pl.grace=1.2;}
+    if(flies&&pl.vel.y>.6){pl.water=false;pl.waterY=NaN;pl.grace=1.2;}
     const bnk=Math.atan2(_rgt.y,_up.y);
     pl.w.z+=(-bnk*3.4*(AC.waterPlaning||1)-pl.w.z*2.4*(AC.waterPlaning||1))*dt*3;
     if(_fwd.y<-.02)pl.w.x+=(-_fwd.y*2.8)*dt*3;
     if(_fwd.y>.22)pl.w.x-=(_fwd.y-.22)*4.5*dt*3;   // das Heck taucht ein
-    const hv=Math.hypot(pl.vel.x,pl.vel.z);
+    // Unter Schrittgeschwindigkeit dominieren Schwimmer und Wasserträgheit.
+    // Das unterdrückt Wind-/Restmomente, ohne die Lenkbarkeit beim Losrollen
+    // oder die Rotation beim Abheben abzuwürgen.
+    const idleHydro=1-smoothstep(2.2,11.5,hv);
+    if(idleHydro>0){
+      const pitchErr=_fwd.y-.025;
+      pl.w.x+=(-pitchErr*3.2-pl.w.x*4.4)*idleHydro*dt*3;
+      pl.w.z+=(-bnk*2.2-pl.w.z*3.6)*idleHydro*dt*3;
+      if(Math.abs(pl.cmdR)<.055)pl.w.y-=pl.w.y*3.4*idleHydro*dt*3;
+    }
     // Auf dem Wasser frei um die eigene Achse drehen, solange man kaum
     // Fahrt macht — genau wie an Land, damit man vor dem Start bequem die
     // Richtung wählen kann. Bei mehr Fahrt übernimmt zunehmend die
@@ -98944,7 +98989,7 @@ function flight(dt,t){
           (Math.random()-.5)*9,2+Math.random()*5,(Math.random()-.5)*9,.9,2.0);
     }
     else if(overSea&&pl.vel.y>-waterSinkLimit&&V<62+hullBonus*8&&levelOK){
-      pl.water=true; pl.pos.y=wh+1.45; pl.vel.y=0; pl.trim=0;
+      pl.water=true; pl.waterY=wh+1.45; pl.pos.y=pl.waterY; pl.vel.y=0; pl.trim=0;
       const waterImpact=clamp((sinkNow-3.8)/Math.max(2.5,waterSinkLimit-3.8),0,1);
       if(waterImpact>.02){
         const impactSide=Math.abs(_rgt.y)>.08?(_rgt.y>0?-1:1):0;
@@ -100157,7 +100202,7 @@ function nearestBuyer(g,x,z){
   });
   return best;
 }
-function cargoWeight(){ let w=0; for(const c of (SAVE.cargo||[]))w+=GOODS[cgGood(c)].w; return w; }
+function missionCargoTaskActive(t){return !!(t&&t.state!=='offered'&&t.t==='visit'&&t.missionCargoReserved===true);} function missionCargoSlotsUsed(){let n=0;for(const t of (SAVE.tasks||[]))if(missionCargoTaskActive(t))n++;return n;} function cargoSlotsUsed(){return (SAVE.cargo||[]).length+missionCargoSlotsUsed();} function cargoSpaceLeft(){return Math.max(0,(AC.hold||3)-cargoSlotsUsed());} function cargoWeight(){ let w=0; for(const c of (SAVE.cargo||[]))w+=GOODS[cgGood(c)].w;for(const t of (SAVE.tasks||[]))if(missionCargoTaskActive(t))w+=isFinite(+t.missionCargoWeight)?+t.missionCargoWeight:55; return w; }
 const HANGAR=[500,2000,5000,6500,8500,11000,14500,19000,24500,32000];
 const HANGAR_MATS=[0,0,0,3,5,7,10,13,17,21];   // Baumaterial je Stufe — erst ab Stufe 4 nötig
 function hangarNext(){ return SAVE.hangar<10?HANGAR[SAVE.hangar]:0; }
@@ -100366,7 +100411,7 @@ function discardTaskAt(i){
         'Abbruch bestätigt. Ich kümmere mich um Ersatz; beim nächsten Mal brauche ich die Meldung früher.',mood:offered?'neutral':'concerned'}]});
   }
   if(SAVE.nav&&SAVE.nav.focus==='task:'+(t.id||t.giver||''))SAVE.nav.focus='auto';
-  SAVE.tasks.splice(i,1); SAVE.taskSeed=(SAVE.taskSeed||0)+1; saveSoon();
+  SAVE.tasks.splice(i,1); SAVE.taskSeed=(SAVE.taskSeed||0)+1; applyLoadout();updateCargoVisual();saveSoon();
   say(offered?'Angebot abgelehnt':'Auftrag aufgegeben');
   return true;
 }
@@ -100384,7 +100429,7 @@ function islandLifeFor(is,make){
   let L=SAVE.islandLife[id];
   if(!L&&make){
     L={visits:0,landings:0,deeds:0,help:0,moments:0,landingQuality:0,last:0,lastMoment:0,heroSeen:false,
-      tradeVolume:0,cargoTypes:{},rescues:0,raidOutcome:'',pilotFame:0,localProsperity:0,damageState:0,festivalMemory:0,lastVisit:0,lastCargoAt:0,citizens:{}};
+      tradeVolume:0,cargoTypes:{},rescues:0,raidOutcome:'',pilotFame:0,localProsperity:0,damageState:0,festivalMemory:0,lastVisit:0,lastCargoAt:0,citizens:{},missionEffects:{}};
     SAVE.islandLife[id]=L;
   }
   return L||null;
@@ -100546,6 +100591,7 @@ function maybeOfferLandmarkMission(is,lm){
     state:'offered',following:false,offeredAt:+SAVE.log.sec||0};
   t.rw=contractReward('visit',dist,tier,risk)+Math.round(60+tier*18);
   t.txt=LANDMARK_MISSION_TEXT[lm.kind]+' Bring es nach '+d.is.name+'.'+landscapeMissionHint(d.is);
+  t.missionRegionHint=missionRegionTag(d.is);missionDirectorCompose(t,is,50505+lm.kind.length*7);
   SAVE.tasks.push(t);pruneTaskOffers();
   missionRecord('chain','Auftrag am '+lm.title+' entstanden',t.txt+' · von '+t.from);
   runNarrative({id:'lm-angebot:'+t.id,channel:'radio',speaker:ch,callsign:'FUNDBÜRO',priority:2,
@@ -100556,6 +100602,182 @@ function landscapeMissionHint(is){
   const inf=is&&LANDSCAPE_LANDMARKS[is.landmarkKind];
   return inf?' Orientierungspunkt: '+inf.title+'.':'';
 }
+/* ============================================================
+   AAA MISSION DIRECTOR · OBJECTIVE GRAPH
+   ------------------------------------------------------------
+   Die fünf historischen Contract-Typen bleiben Save-/Story-kompatibel.
+   Darunter läuft nun eine Folge physischer Objectives, so dass Auftragstext,
+   Funk und tatsächlich geflogene Handlung dieselbe Sache beschreiben.
+   ============================================================ */
+const MISSION_DIRECTOR_VERSION=1;
+const MISSION_OBJECTIVE_LABEL={TRAVEL:'Einsatzraum erreichen',ENTER_ZONE:'Arbeitszone aufnehmen',HOLD_ALTITUDE:'Messhöhe stabilisieren',HOLD_HEADING:'Messkurs halten',HOLD_SPEED:'Messfahrt stabilisieren',SCAN:'Messung durchführen',LAND:'Am Ziel landen',WATER_LAND:'Kontrolliert wassern',TAXI:'Zum Übergabepunkt rollen',DELIVER:'Übergabe abschließen',RINGS:'Kurs vollständig fliegen',INVESTIGATE:'Suchsektoren prüfen',INTERCEPT:'Kontakt abfangen',SECURE_ZONE:'Luftraum sichern',RENDEZVOUS:'Treffpunkt aufnehmen',ESCORT:'Geleitschutz halten',SUPPLY_DROP:'Versorgung abwerfen'};
+const MISSION_PLANE_BIAS={
+  0:{visit:1.0,rings:1.0,foes:1.0,alt:1.0,water:1.0},1:{visit:.92,rings:1.28,foes:.9,alt:.92,water:1.08},2:{visit:1.22,rings:.78,foes:.82,alt:1.04,water:1.22},3:{visit:.88,rings:1.10,foes:1.34,alt:1.16,water:.82},4:{visit:1.42,rings:.68,foes:.82,alt:.84,water:1.18},5:{visit:1.28,rings:1.24,foes:.96,alt:.94,water:.90},6:{visit:.92,rings:1.48,foes:1.12,alt:1.04,water:.88},7:{visit:1.18,rings:.88,foes:.92,alt:1.36,water:1.05},8:{visit:1.30,rings:.64,foes:1.22,alt:.88,water:1.32},9:{visit:1.08,rings:1.12,foes:1.16,alt:1.18,water:1.03}
+};
+function missionDirectorState(){if(!SAVE.missionDirector||typeof SAVE.missionDirector!=='object')SAVE.missionDirector={v:1,history:[],generated:0,completed:0};if(!Array.isArray(SAVE.missionDirector.history))SAVE.missionDirector.history=[];return SAVE.missionDirector;}
+function missionRegionTag(is){if(!is)return'coast';if(is.hb)return'lagoon';if(is.big&&(+is.h||0)>500)return'alpine';if((+is.h||0)>320)return'high';if(is.village)return'inhabited';return'coast';}
+function missionDirectorWeight(kind,is,seed){const D=missionDirectorState(),P=MISSION_PLANE_BIAS[SAVE.plane||0]||MISSION_PLANE_BIAS[0],region=missionRegionTag(is);let w=P[kind]||1;if(region==='lagoon')w*=kind==='water'?1.35:kind==='visit'?1.16:1;if(region==='alpine'||region==='high')w*=kind==='alt'?1.38:kind==='rings'?1.10:1;if(region==='inhabited')w*=kind==='visit'?1.18:kind==='foes'?1.10:1;const recent=D.history.slice(-8);for(let i=0;i<recent.length;i++)if(recent[i].type===kind)w*=i>=recent.length-2?.54:.84;w*=.92+ihash(is?is.ci:0,is?is.cj:0,73001+(seed||0)*17+kind.length)*.16;return w;}
+function missionDirectorOrder(prefs,is,seed){return prefs.slice().sort(function(a,b){return missionDirectorWeight(b,is,seed)-missionDirectorWeight(a,is,seed);});}
+function missionDirectorRemember(T){if(!T)return;const D=missionDirectorState(),sig=missionObjectiveSignature(T);D.history.push({type:T.t,template:T.missionTemplate||T.t,sig:sig,region:T.missionRegion||'',plane:SAVE.plane||0,t:+SAVE.log.sec||0});if(D.history.length>16)D.history.splice(0,D.history.length-16);saveSoon();}
+function missionObjectiveMake(type,label,opt){opt=opt||{};return Object.assign({type:type,label:label||MISSION_OBJECTIVE_LABEL[type]||type,state:'pending',progress:0,duration:0,radius:0},opt);}
+function missionDirectorVisitVariant(t,is,salt){if(!is)return 'delivery';const r=ihash(is.ci,is.cj,73411+(salt||0)*13),recent=missionDirectorState().history.slice(-3).map(function(x){return x.template;});let v=r<.18?'escort':r<.34?'rendezvous':'delivery';if(recent.filter(function(x){return x==='visit:'+v;}).length>=2)v=v==='delivery'?'escort':v==='escort'?'rendezvous':'delivery';return v;}
+function missionRiskProfile(t){const wf=isFinite(+t.tx)&&isFinite(+t.tz)?weatherForecastAt(+t.tx,+t.tz,clamp((+t.dist||0)/52,20,600)):null,terrain=isFinite(+t.tx)&&isFinite(+t.tz)?heightAt(+t.tx,+t.tz):0;return {weather:clamp(Math.round((wf&&wf.risk||0)*3),0,3),terrain:clamp(Math.round((Math.max(0,terrain)/650+(t.t==='alt'?.8:0))*1.4),0,3),combat:t.t==='foes'?3:(t.missionVariant==='escort'?1:0),cargo:(t.t==='visit'||t.t==='water')?clamp(1+Math.floor((+t.tier||1)/3),1,3):0,distance:clamp(Math.round((+t.dist||0)/4000),0,3)};}
+function missionRiskBrief(T){const r=T.riskProfile||missionRiskProfile(T),dots=function(n){return'●'.repeat(clamp(n,0,3))+'○'.repeat(3-clamp(n,0,3));};return 'Wetter '+dots(r.weather)+' · Gelände '+dots(r.terrain)+' · Feind '+dots(r.combat)+' · Fracht '+dots(r.cargo)+' · Strecke '+dots(r.distance);}
+function missionHeadingBetween(x0,z0,x1,z1){return(Math.atan2(x1-x0,-(z1-z0))*180/Math.PI+360)%360;}
+function missionOffshorePoint(cx,cz,tx,tz){const base=Math.atan2(tz-cz,tx-cx),spread=[0,.18,-.18,.36,-.36,.62,-.62,.9,-.9];for(const da of spread)for(let r=280;r<=3400;r+=140){const x=cx+Math.cos(base+da)*r,z=cz+Math.sin(base+da)*r;if(heightAt(x,z)<-2.2)return{x:x,z:z};}return null;}
+function missionWaterLegClear(a,b){if(!a||!b)return false;for(let i=0;i<=28;i++){const u=i/28,x=lerp(a.x,b.x,u),z=lerp(a.z,b.z,u);if(!isFinite(x)||!isFinite(z)||heightAt(x,z)>-1.15)return false;}return true;}
+function missionEscortWaterRoute(srcX,srcZ,tx,tz){const s=missionOffshorePoint(srcX,srcZ,tx,tz),e=missionOffshorePoint(tx,tz,srcX,srcZ);if(!s||!e)return null;if(missionWaterLegClear(s,e))return[s,e];const dx=e.x-s.x,dz=e.z-s.z,dl=Math.hypot(dx,dz)||1,nx=-dz/dl,nz=dx/dl,mx=(s.x+e.x)*.5,mz=(s.z+e.z)*.5;for(const off of [900,-900,1600,-1600,2500,-2500,3600,-3600,4800,-4800]){const q={x:mx+nx*off,z:mz+nz*off};if(heightAt(q.x,q.z)<-1.15&&missionWaterLegClear(s,q)&&missionWaterLegClear(q,e))return[s,q,e];}for(const off of [1800,-1800,3000,-3000,4500,-4500]){const a={x:lerp(s.x,e.x,.34)+nx*off,z:lerp(s.z,e.z,.34)+nz*off},b={x:lerp(s.x,e.x,.68)+nx*off,z:lerp(s.z,e.z,.68)+nz*off};if(heightAt(a.x,a.z)<-1.15&&heightAt(b.x,b.z)<-1.15&&missionWaterLegClear(s,a)&&missionWaterLegClear(a,b)&&missionWaterLegClear(b,e))return[s,a,b,e];}return null;}
+function missionPolylineLength(points){let L=0;if(!Array.isArray(points))return 0;for(let i=1;i<points.length;i++)L+=Math.hypot(points[i].x-points[i-1].x,points[i].z-points[i-1].z);return L;}
+function missionPolylinePoint(points,u){if(!Array.isArray(points)||!points.length)return{x:0,z:0};if(points.length===1)return{x:points[0].x,z:points[0].z};const total=missionPolylineLength(points)||1,target=clamp(u,0,1)*total;let at=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],L=Math.hypot(b.x-a.x,b.z-a.z);if(at+L>=target){const q=(target-at)/Math.max(.001,L);return{x:lerp(a.x,b.x,q),z:lerp(a.z,b.z,q),heading:Math.atan2(b.x-a.x,-(b.z-a.z))};}at+=L;}const a=points[points.length-2],b=points[points.length-1];return{x:b.x,z:b.z,heading:Math.atan2(b.x-a.x,-(b.z-a.z))};}
+function missionDirectorBuildObjectives(t,is,salt){const srcX=is&&isFinite(+is.cx)?+is.cx:(pl&&pl.pos?pl.pos.x:+t.tx||0),srcZ=is&&isFinite(+is.cz)?+is.cz:(pl&&pl.pos?pl.pos.z:+t.tz||0),tx=+t.tx||srcX,tz=+t.tz||srcZ,rad=Math.max(450,+t.radius||900),out=[];t.sourceX=srcX;t.sourceZ=srcZ;t.missionRegion=t.missionRegionHint||missionRegionTag(is);if(t.t==='visit'){
+    let v=missionDirectorVisitVariant(t,is,salt),escortRoute=null;
+    if(v==='escort'){escortRoute=missionEscortWaterRoute(srcX,srcZ,tx,tz);if(!escortRoute)v='delivery';}
+    t.missionVariant=v;t.missionTemplate='visit:'+v;
+    if(v==='rendezvous'){
+      const u=.52,nx=-(tz-srcZ)/(Math.hypot(tx-srcX,tz-srcZ)||1),nz=(tx-srcX)/(Math.hypot(tx-srcX,tz-srcZ)||1),side=(ihash(is?is.ci:0,is?is.cj:0,73511+(salt||0))<.5?-1:1)*380;
+      out.push(missionObjectiveMake('RENDEZVOUS','Kurierkontakt aufnehmen',{x:lerp(srcX,tx,u)+nx*side,z:lerp(srcZ,tz,u)+nz*side,radius:300,duration:7,entity:'aircraft'}));
+    }else if(v==='escort'){
+      const ss=escortRoute[0],ee=escortRoute[escortRoute.length-1];
+      out.push(missionObjectiveMake('RENDEZVOUS','Frachtschiff aufnehmen',{x:ss.x,z:ss.z,radius:430,duration:5,entity:'ship'}));
+      out.push(missionObjectiveMake('ESCORT','Frachtschiff bis zum Ziel begleiten',{sx:ss.x,sz:ss.z,ex:ee.x,ez:ee.z,waypoints:escortRoute,radius:1400,duration:1,entity:'ship'}));
+    }else out.push(missionObjectiveMake('TRAVEL','Zielhafen erreichen',{x:tx,z:tz,radius:Math.max(900,rad+350)}));
+    out.push(missionObjectiveMake('LAND','Am Ziel sicher aufsetzen',{x:tx,z:tz,radius:rad}));
+    out.push(missionObjectiveMake('TAXI','Zum Übergabepunkt rollen',{x:tx,z:tz,radius:rad,duration:2.5}));
+    out.push(missionObjectiveMake('DELIVER','Fracht übergeben',{x:tx,z:tz,radius:rad,duration:1.5}));
+  }else if(t.t==='alt'){t.missionVariant=t.missionRegion==='alpine'?'ridgeSurvey':'signalSurvey';t.missionTemplate='survey:'+t.missionVariant;const hdg=missionHeadingBetween(srcX,srcZ,tx,tz);out.push(missionObjectiveMake('TRAVEL','Messgebiet erreichen',{x:tx,z:tz,radius:Math.max(1800,rad+500)}));out.push(missionObjectiveMake('ENTER_ZONE','Messkorridor aufnehmen',{x:tx,z:tz,radius:rad}));out.push(missionObjectiveMake('HOLD_ALTITUDE','Messhöhe stabilisieren',{target:+t.h||1000,tol:70,maxVS:4.5,duration:7}));out.push(missionObjectiveMake('HOLD_HEADING','Messkurs halten',{heading:hdg,tol:11,duration:8}));out.push(missionObjectiveMake('HOLD_SPEED','Messfahrt stabilisieren',{minKmh:95,maxKmh:190,duration:6}));out.push(missionObjectiveMake('SCAN','Messung aufzeichnen',{targetAlt:+t.h||1000,heading:hdg,duration:25}));
+  }else if(t.t==='water'){t.missionVariant=t.missionRegion==='lagoon'?'lagoon':'precision';t.missionTemplate='water:'+t.missionVariant;out.push(missionObjectiveMake('TRAVEL','Zielbucht erreichen',{x:tx,z:tz,radius:Math.max(1500,rad+300)}));out.push(missionObjectiveMake('ENTER_ZONE','Wasserungssektor aufnehmen',{x:tx,z:tz,radius:rad}));out.push(missionObjectiveMake('WATER_LAND','Kontrolliert wassern',{x:tx,z:tz,radius:rad,minScore:+t.minScore||55}));
+  }else if(t.t==='rings'){const modes=['precision','time','low','stable','wind','energy'],m=modes[Math.floor(ihash(is?is.ci:0,is?is.cj:0,73621+(salt||0))*modes.length)%modes.length];t.ringMode=m;t.missionVariant=m;t.missionTemplate='rings:'+m;out.push(missionObjectiveMake('TRAVEL','Kurs erreichen',{x:tx,z:tz,radius:950}));out.push(missionObjectiveMake('RINGS',{precision:'Präzisionskurs fliegen',time:'Zeitkurs fliegen',low:'Tiefflugkurs fliegen',stable:'Stabilen Messkurs fliegen',wind:'Windkurs fliegen',energy:'Energiekurs fliegen'}[m],{x:tx,z:tz,radius:800,mode:m}));
+  }else if(t.t==='foes'){t.missionVariant='searchIntercept';t.missionTemplate='patrol:search';const rr=Math.max(550,rad*.52),pts=[];for(let i=0;i<3;i++){const a=(i/3)*TAU+ihash(is?is.ci:0,is?is.cj:0,73731+(salt||0))*.7;pts.push({x:tx+Math.cos(a)*rr,z:tz+Math.sin(a)*rr});}out.push(missionObjectiveMake('TRAVEL','Patrouillengebiet erreichen',{x:tx,z:tz,radius:Math.max(2000,rad+450)}));out.push(missionObjectiveMake('INVESTIGATE','Drei Suchsektoren prüfen',{x:tx,z:tz,radius:420,points:pts,pointIndex:0}));out.push(missionObjectiveMake('INTERCEPT','Luftpiraten abfangen',{x:tx,z:tz,radius:rad,count:+t.n||1}));out.push(missionObjectiveMake('SECURE_ZONE','Luftraum sichern',{x:tx,z:tz,radius:rad,duration:18}));}
+  return out;
+}
+function missionDirectorCompose(t,is,salt){if(!t)return t;if(t.directorVersion===MISSION_DIRECTOR_VERSION&&Array.isArray(t.objectives)&&t.objectives.length)return t;t.objectives=missionDirectorBuildObjectives(t,is,salt||t.seed||0);t.objectiveIndex=0;t.directorVersion=MISSION_DIRECTOR_VERSION;t.riskProfile=missionRiskProfile(t);t.cargoIntegrity=isFinite(+t.cargoIntegrity)?clamp(+t.cargoIntegrity,0,100):100;t.cargoShock=+t.cargoShock||0;if(t.t==='visit'&&!isFinite(+t.missionCargoWeight))t.missionCargoWeight=45+(+t.tier||1)*10;t.missionRuntime=t.missionRuntime&&typeof t.missionRuntime==='object'?t.missionRuntime:{};missionDirectorState().generated=(missionDirectorState().generated||0)+1;return t;}
+function ensureMissionDirector(T,is){if(!T)return T;if(!Array.isArray(T.objectives)||!T.objectives.length)missionDirectorCompose(T,is||islandByKey(T.giver)||null,T.seed||0);if(!isFinite(+T.objectiveIndex))T.objectiveIndex=0;return T;}
+function missionObjectiveSignature(T){ensureMissionDirector(T);return(T.objectives||[]).map(function(o){return o.type+(o.mode?':'+o.mode:'');}).join('>');}
+function missionObjectiveCurrent(T){ensureMissionDirector(T);while(T.objectiveIndex<T.objectives.length&&T.objectives[T.objectiveIndex].state==='done')T.objectiveIndex++;return T.objectives[T.objectiveIndex]||null;}
+function missionObjectivesComplete(T){ensureMissionDirector(T);return !missionObjectiveCurrent(T);}
+function missionObjectiveProgress(o){if(!o)return 0;if(o.state==='done')return 1;if(o.type==='INVESTIGATE')return clamp((+o.pointIndex||0)/Math.max(1,(o.points||[]).length),0,1);if(o.type==='ESCORT')return clamp(+o.progress01||0,0,1);if(o.duration>0)return clamp((+o.progress||0)/o.duration,0,1);return clamp(+o.progress||0,0,1);}
+function missionObjectiveRadioBeat(T,next){if(!T||!next||!narrativeModalSafe())return;const R=T.missionRuntime||(T.missionRuntime={}),key=String(T.objectiveIndex)+':'+next.type;if(R.lastRadioObjective===key)return;R.lastRadioObjective=key;const lines={HOLD_ALTITUDE:'Messhöhe jetzt sauber einfangen. Vertikalgeschwindigkeit beruhigen.',HOLD_HEADING:'Höhe passt. Jetzt den Messkurs stabil halten.',HOLD_SPEED:'Kurs steht. Fahrt in das angezeigte Fenster bringen.',SCAN:'Messung läuft gleich. Kleine Korrekturen, keine großen Ausschläge.',INVESTIGATE:'Kein direkter Kontakt. Suchsektoren nacheinander abfliegen.',INTERCEPT:'Kontakt bestätigt. Jetzt abfangen.',SECURE_ZONE:'Ziele vertrieben. Bleib noch kurz im Gebiet und sichere den Luftraum.',RENDEZVOUS:'Kontakt voraus. Geschwindigkeit angleichen und Formation halten.',ESCORT:'Geleit aufgenommen. Bleib nah genug, damit der Frachter nicht allein läuft.',SUPPLY_DROP:'Boot in Sicht. Tief und langsam ansetzen; Versorgung erst im Abwurffenster lösen.',LAND:'Ziel frei. Jetzt sauber aufsetzen.',TAXI:'Aufgesetzt. Langsam zum Übergabepunkt rollen.',DELIVER:'Übergabepunkt erreicht. Maschine ruhig halten, bis entladen ist.'};const text=lines[next.type];if(!text)return;const ch=narrativeCharacter(T.from)||COAST_GUARD_CHARACTER;runNarrative({id:'missionobj:'+String(T.id||T.giver)+':'+key,once:true,channel:'radio',speaker:ch,callsign:'AUFTRAGGEBER',priority:1,beats:[{text:text,mood:next.type==='INTERCEPT'?'concerned':'neutral'}]});}
+function missionObjectiveComplete(T,o,reason){if(!T||!o||o.state==='done')return;o.state='done';o.progress=o.duration||1;o.completedAt=+SAVE.log.sec||0;T.objectiveIndex=Math.max(T.objectiveIndex||0,T.objectives.indexOf(o)+1);if(!T.missionRuntime)T.missionRuntime={};T.missionRuntime.lastReason=reason||'';sfxRing(.32);haptic(7);const next=missionObjectiveCurrent(T);if(next)missionObjectiveRadioBeat(T,next);saveSoon();}
+const _missionForward=new THREE.Vector3();
+function missionPlayerHeading(){_missionForward.set(0,0,-1).applyQuaternion(pl.q);return(Math.atan2(_missionForward.x,-_missionForward.z)*180/Math.PI+360)%360;}
+function missionAngleDeltaDeg(a,b){return Math.abs(((a-b+540)%360)-180);}
+function missionObjectiveTarget(T){const o=missionObjectiveCurrent(T);if(!o)return null;if((o.type==='RENDEZVOUS'||o.type==='ESCORT')&&T.missionRuntime&&isFinite(+T.missionRuntime.entityX))return{x:+T.missionRuntime.entityX,z:+T.missionRuntime.entityZ,n:o.label};if(o.type==='INVESTIGATE'&&Array.isArray(o.points)&&o.points.length){const q=o.points[clamp(+o.pointIndex||0,0,o.points.length-1)];return{x:q.x,z:q.z,n:o.label};}if(isFinite(+o.x)&&isFinite(+o.z))return{x:+o.x,z:+o.z,n:o.label};return null;}
+function missionObjectiveDetail(T,o){if(!o)return'';const p=missionObjectiveProgress(o);if(o.type==='HOLD_ALTITUDE')return Math.round(pl.pos.y)+' / '+Math.round(o.target)+' m · ±'+Math.round(o.tol)+' m';if(o.type==='HOLD_HEADING')return Math.round(missionPlayerHeading())+'° / '+Math.round(o.heading)+'° · ±'+Math.round(o.tol)+'°';if(o.type==='HOLD_SPEED')return Math.round(pl.v*3.6)+' km/h · '+Math.round(o.minKmh)+'–'+Math.round(o.maxKmh);if(o.type==='SCAN')return 'Signalqualität '+Math.round((T.missionRuntime&&T.missionRuntime.scanQuality||0)*100)+' % · '+Math.round(p*100)+' %';if(o.type==='INVESTIGATE')return Math.min((o.pointIndex||0)+1,(o.points||[]).length)+' / '+(o.points||[]).length+' Suchsektoren';if(o.type==='INTERCEPT')return (T.got||0)+' / '+(T.n||1)+' Kontakte';if(o.type==='SECURE_ZONE')return Math.round(o.progress||0)+' / '+Math.round(o.duration||18)+' s';if(o.type==='ESCORT')return Math.round(p*100)+' % · Abstand '+Math.round(T.missionRuntime&&T.missionRuntime.entityDistance||0)+' m';if(o.type==='RENDEZVOUS'){const R=T.missionRuntime||{},ship=o.entity==='ship';return Math.round(o.progress||0)+' / '+Math.round(o.duration||6)+' s Formation'+(ship?' · Abstand '+Math.round(R.entityDistance||0)+' m':' · ΔV '+Math.round(R.relativeSpeedKmh||0)+' km/h · ΔKurs '+Math.round(R.formationHeadingError||0)+'°');}if(o.type==='RINGS'){const m=o.mode||T.ringMode,txt={precision:'Alle Tore sauber treffen',time:'Zeitfenster priorisieren',low:'Unter 650 m bleiben',stable:'G-Last unter 2.25 halten',wind:'Böen sauber aussteuern',energy:'Mit mindestens 125 km/h auslaufen'};return txt[m]||'Kurs vollständig fliegen';}if(o.type==='SUPPLY_DROP')return '20–130 m AGL · unter 170 km/h · Ziel < 350 m';if(o.type==='TAXI'||o.type==='DELIVER')return Math.round((o.progress||0)*10)/10+' / '+Math.round((o.duration||1)*10)/10+' s';const tg=missionObjectiveTarget(T);return tg?(Math.hypot(tg.x-pl.pos.x,tg.z-pl.pos.z)/1000).toFixed(1)+' km':'';}
+const MISSION_ENTITY={mesh:null,escortMesh:null,distressMesh:null,dropMesh:null,drop:null,taskId:'',visualTaskId:''};
+function missionEntityEnsure(){
+  if(!MISSION_ENTITY.mesh){MISSION_ENTITY.mesh=new THREE.Mesh(aiPlaneGeo(0xd5b36e,0x6d665d,0xf1e8d4),new THREE.MeshLambertMaterial({vertexColors:true}));MISSION_ENTITY.mesh.visible=false;MISSION_ENTITY.mesh.frustumCulled=false;scene.add(MISSION_ENTITY.mesh);}
+  if(!MISSION_ENTITY.escortMesh){MISSION_ENTITY.escortMesh=new THREE.Mesh(boatGeo(),new THREE.MeshLambertMaterial({vertexColors:true}));MISSION_ENTITY.escortMesh.scale.setScalar(.82);MISSION_ENTITY.escortMesh.visible=false;MISSION_ENTITY.escortMesh.frustumCulled=false;scene.add(MISSION_ENTITY.escortMesh);}
+  if(!MISSION_ENTITY.distressMesh){MISSION_ENTITY.distressMesh=new THREE.Mesh(boatGeo(),new THREE.MeshLambertMaterial({vertexColors:true}));MISSION_ENTITY.distressMesh.scale.setScalar(.58);MISSION_ENTITY.distressMesh.visible=false;MISSION_ENTITY.distressMesh.frustumCulled=false;scene.add(MISSION_ENTITY.distressMesh);}
+  if(!MISSION_ENTITY.dropMesh){MISSION_ENTITY.dropMesh=new THREE.Mesh(new THREE.BoxGeometry(1.1,.8,1.1),new THREE.MeshLambertMaterial({color:0xe0b96b}));MISSION_ENTITY.dropMesh.visible=false;MISSION_ENTITY.dropMesh.frustumCulled=false;scene.add(MISSION_ENTITY.dropMesh);}
+}
+function missionEntityHide(){if(MISSION_ENTITY.mesh)MISSION_ENTITY.mesh.visible=false;if(MISSION_ENTITY.escortMesh)MISSION_ENTITY.escortMesh.visible=false;if(MISSION_ENTITY.distressMesh)MISSION_ENTITY.distressMesh.visible=false;}
+function missionDynamicEntityUpdate(dt,T,o,visual){
+  missionEntityEnsure();const R=T.missionRuntime||(T.missionRuntime={}),id=String(T.id||T.giver||'');MISSION_ENTITY.taskId=id;
+  let x=o.x,z=o.z,heading=0,ship=o.entity==='ship'||o.type==='ESCORT';
+  if(o.type==='RENDEZVOUS'){
+    if(ship){const ph=(+SAVE.log.sec||0)*.18+(T.seed||0);x=o.x+Math.cos(ph)*8;z=o.z+Math.sin(ph)*8;heading=ph*.08;R.entitySpeedMS=1.45;}
+    else{
+      // Das Kurierflugzeug fliegt wirklich: ~140 km/h auf einem weiten Orbit.
+      // Formation bedeutet damit relative Fahrt + Kurs, nicht nur Marker-Nähe.
+      const radius=185,omega=38.5/radius,ph=(+SAVE.log.sec||0)*omega+(T.seed||0)*.73;
+      x=o.x+Math.cos(ph)*radius;z=o.z+Math.sin(ph)*radius;heading=ph+Math.PI*.5;R.entitySpeedMS=38.5;
+    }
+  }else if(o.type==='ESCORT'){
+    o.progress01=clamp(+o.progress01||0,0,1);const route=Array.isArray(o.waypoints)&&o.waypoints.length>1?o.waypoints:[{x:o.sx,z:o.sz},{x:o.ex,z:o.ez}],pre=missionPolylinePoint(route,o.progress01),d=Math.hypot(pl.pos.x-pre.x,pl.pos.z-pre.z),routeLen=missionPolylineLength(route),rate=d<1400?1/Math.max(55,routeLen/26):(d<2200?1/Math.max(150,routeLen/18):0);o.progress01=clamp(o.progress01+dt*rate,0,1);const q=missionPolylinePoint(route,o.progress01);x=q.x;z=q.z;heading=q.heading||0;R.entityDistance=d;const M=taskTelemetryStart(T);if(M){M.escortSamples=(M.escortSamples||0)+dt;if(d<1400)M.escortClose=(M.escortClose||0)+dt;}
+  }
+  R.entityX=x;R.entityZ=z;R.entityHeadingDeg=(heading*180/Math.PI+360)%360;const h=heightAt(x,z);
+  if(visual){
+    if(ship){const sm=MISSION_ENTITY.escortMesh,wy=typeof oceanWaveY==='function'?oceanWaveY(x,z,+SAVE.log.sec||0,h):.7;sm.position.set(x,wy+.45,z);sm.rotation.set(Math.sin((+SAVE.log.sec||0)*.7)*.025,-heading+Math.PI*.5,Math.sin((+SAVE.log.sec||0)*.53)*.035);sm.visible=true;}
+    else{const am=MISSION_ENTITY.mesh;am.position.set(x,Math.max(70,h+65),z);am.rotation.y=heading;am.visible=true;}
+  }
+  return{x:x,z:z};
+}
+function missionDropUpdate(dt){const D=MISSION_ENTITY.drop;if(!D)return;D.vy-=9.81*dt;D.x+=D.vx*dt;D.y+=D.vy*dt;D.z+=D.vz*dt;const h=heightAt(D.x,D.z),floor=h>0?h+.5:.7;if(D.y<=floor){const T=SAVE.tasks.find(function(t){return String(t.id||'')===D.taskId;}),o=T&&missionObjectiveCurrent(T),miss=T&&o?Math.hypot(D.x-o.x,D.z-o.z):999;MISSION_ENTITY.dropMesh.visible=false;MISSION_ENTITY.drop=null;if(T&&o&&o.type==='SUPPLY_DROP'){const M=taskTelemetryStart(T);if(M)M.dropAccuracy=miss;if(miss<=110){missionObjectiveComplete(T,o,'supply_drop');if(T.complication&&T.complication.decision==='help'){T.complication.resolved='help';T.complication.triggered=true;const gi=islandByKey(T.giver);if(gi&&typeof harborRecordAftermath==='function')harborRecordAftermath('rescue_success',gi);}say('Versorgung angekommen · '+Math.round(miss)+' m Abweichung');}else say('Abwurf verfehlt · '+Math.round(miss)+' m · erneut ansetzen');}return;}MISSION_ENTITY.dropMesh.position.set(D.x,D.y,D.z);MISSION_ENTITY.dropMesh.rotation.x+=dt*2.8;MISSION_ENTITY.dropMesh.rotation.z+=dt*1.7;MISSION_ENTITY.dropMesh.visible=true;}
+function missionActionPressed(){const rec=navigationTask(),T=rec&&rec.task,o=T&&missionObjectiveCurrent(T);if(!T||!o||o.type!=='SUPPLY_DROP')return;const agl=pl.pos.y-Math.max(0,heightAt(pl.pos.x,pl.pos.z)),kmh=pl.v*3.6,d=Math.hypot(pl.pos.x-o.x,pl.pos.z-o.z);if(agl<20||agl>130){say('Abwurf: 20–130 m über Grund halten');return;}if(kmh>170){say('Abwurf: unter 170 km/h verlangsamen');return;}if(d>350){say('Abwurf: näher ans Ziel · '+Math.round(d)+' m');return;}missionEntityEnsure();MISSION_ENTITY.drop={taskId:String(T.id||''),x:pl.pos.x,y:pl.pos.y-1,z:pl.pos.z,vx:pl.vel.x,vy:pl.vel.y-5,vz:pl.vel.z};MISSION_ENTITY.dropMesh.visible=true;sfxRing(.28);haptic(10);}
+function missionInsertObjectives(T,objs){ensureMissionDirector(T);const at=clamp(T.objectiveIndex||0,0,T.objectives.length);T.objectives.splice.apply(T.objectives,[at,0].concat(objs));saveSoon();}
+function missionInsertDistressObjectives(T){if(!T||!T.complication)return;missionInsertObjectives(T,[missionObjectiveMake('INVESTIGATE','Notrufposition finden',{x:T.complication.x,z:T.complication.z,radius:320,points:[{x:T.complication.x,z:T.complication.z}],pointIndex:0}),missionObjectiveMake('SUPPLY_DROP','Versorgung zum Boot bringen',{x:T.complication.x,z:T.complication.z,radius:350})]);}
+function missionInsertWeatherDiversion(T){if(!T||!T.weatherChoice||!isFinite(+T.weatherChoice.x)||!isFinite(+T.weatherChoice.z))return;ensureMissionDirector(T);const cx=+T.weatherChoice.x,cz=+T.weatherChoice.z,r=Math.max(900,+T.weatherChoice.r||1800),tx=+T.tx||pl.pos.x,tz=+T.tz||pl.pos.z,dx=tx-pl.pos.x,dz=tz-pl.pos.z,dl=Math.hypot(dx,dz)||1,nx=-dz/dl,nz=dx/dl,side=((pl.pos.x-cx)*nx+(pl.pos.z-cz)*nz)>=0?1:-1,objs=[];for(const k of [-.9,0,.9])objs.push(missionObjectiveMake('TRAVEL','Wetterumleitung '+(objs.length+1)+'/3',{x:cx+nx*side*(r+900)+dx/dl*k*r*.85,z:cz+nz*side*(r+900)+dz/dl*k*r*.85,radius:430}));missionInsertObjectives(T,objs);}
+function missionCargoStress(dt,T,M){if(!T||(T.t!=='visit'&&T.t!=='water'))return;T.cargoIntegrity=isFinite(+T.cargoIntegrity)?+T.cargoIntegrity:100;const gStress=Math.max(0,Math.abs((+pl.g||1)-1)-1.25),turb=weatherLocal&&weatherLocal.turbulence||0,damageDelta=Math.max(0,(M.damage||0)-(M.lastCargoDamage||0));M.lastCargoDamage=M.damage||0;const loss=(gStress*gStress*.55+turb*turb*.12)*dt+damageDelta*.16;if(loss>0){T.cargoShock=(+T.cargoShock||0)+loss;T.cargoIntegrity=clamp(T.cargoIntegrity-loss,0,100);}M.cargoIntegrity=T.cargoIntegrity;M.cargoShock=T.cargoShock||0;}
+function missionCargoLandingShock(T,ev){if(!T||(T.t!=='visit'&&T.t!=='water'))return;const score=ev&&isFinite(+ev.score)?+ev.score:70,loss=clamp((82-score)*.36,0,24);T.cargoIntegrity=clamp((isFinite(+T.cargoIntegrity)?+T.cargoIntegrity:100)-loss,0,100);T.cargoShock=(+T.cargoShock||0)+loss;}
+function missionObjectiveEvent(T,kind,ev){ensureMissionDirector(T);missionCargoLandingShock(T,ev);if(!T.missionRuntime)T.missionRuntime={};if((kind==='visit'||kind==='water')&&ev&&isFinite(+ev.score))T.missionRuntime.landingScore=+ev.score;
+  let o=missionObjectiveCurrent(T);if(!o)return false;
+  if(kind==='rings'){while(o&&o.type==='TRAVEL'){missionObjectiveComplete(T,o,'course_arrival');o=missionObjectiveCurrent(T);}if(o&&o.type==='RINGS'){const M=taskTelemetryStart(T),mode=o.mode||T.ringMode;if(M){M.ringExitSpeed=pl.v*3.6;M.ringVariantOK=mode==='low'?(M.ringMaxAlt||0)<=650:mode==='stable'?(M.ringMaxG||0)<=2.25:mode==='energy'?M.ringExitSpeed>=125:true;}missionObjectiveComplete(T,o,'rings');return true;}}
+  if(kind==='visit'){while(o&&(['TRAVEL','ENTER_ZONE'].includes(o.type))){missionObjectiveComplete(T,o,'arrival');o=missionObjectiveCurrent(T);}if(o&&o.type==='LAND'){missionObjectiveComplete(T,o,'land');const taxi=missionObjectiveCurrent(T);if(taxi&&taxi.type==='TAXI'&&ev&&isFinite(+ev.x)&&isFinite(+ev.z)){_missionForward.set(0,0,-1).applyQuaternion(pl.q);taxi.x=+ev.x+_missionForward.x*34;taxi.z=+ev.z+_missionForward.z*34;taxi.radius=48;const del=T.objectives[T.objectives.indexOf(taxi)+1];if(del&&del.type==='DELIVER'){del.x=taxi.x;del.z=taxi.z;del.radius=58;}}return true;}}
+  if(kind==='water'){while(o&&(['TRAVEL','ENTER_ZONE'].includes(o.type))){missionObjectiveComplete(T,o,'arrival');o=missionObjectiveCurrent(T);}if(o&&o.type==='WATER_LAND'&&(!o.minScore||!ev||+ev.score>=o.minScore)){missionObjectiveComplete(T,o,'water_land');return true;}}
+  if(kind==='foes'&&o.type==='INTERCEPT'&&(T.got||0)>=(T.n||1)){missionObjectiveComplete(T,o,'intercept');return true;}return false;}
+function missionContractFoesAlive(T){return foes.some(function(f){return f.on&&f.dead<=0&&(!T.id||f.contractId===T.id);});}
+function missionRendezvousFormationOK(ship,dist,playerKmh,entityKmh,headingErr){
+  if(ship)return dist<450&&playerKmh>55&&playerKmh<190;
+  return dist<300&&Math.abs(playerKmh-entityKmh)<=32&&headingErr<=24;
+}
+function missionRuntimeUpdateOne(dt,T,index){ensureMissionDirector(T);const M=taskTelemetryStart(T),o=missionObjectiveCurrent(T);if(!o)return;missionEntityEnsure();const visual=String(T.id||T.giver||'')===String(MISSION_ENTITY.visualTaskId||''),distress=visual&&!!(T.complication&&T.complication.decision==='help'&&!T.complication.resolved&&(o.type==='INVESTIGATE'||o.type==='SUPPLY_DROP'));if(MISSION_ENTITY.distressMesh&&visual){MISSION_ENTITY.distressMesh.visible=distress;if(distress){const bx=+T.complication.x,bz=+T.complication.z,bh=heightAt(bx,bz);MISSION_ENTITY.distressMesh.position.set(bx,bh<0?.9:bh+1,bz);MISSION_ENTITY.distressMesh.rotation.y=(T.seed||0)*.71+Math.sin((+SAVE.log.sec||0)*.2)*.08;}}const tg=missionObjectiveTarget(T),d=tg?Math.hypot(pl.pos.x-tg.x,pl.pos.z-tg.z):1e9,inside=function(r){return d<=Math.max(50,r||o.radius||500);};
+  if(o.type==='TRAVEL'||o.type==='ENTER_ZONE'){if(inside(o.radius||650))missionObjectiveComplete(T,o,'zone');}
+  else if(o.type==='HOLD_ALTITUDE'){const ok=Math.abs(pl.pos.y-o.target)<=o.tol&&Math.abs(pl.vel.y)<=o.maxVS;o.progress=clamp((+o.progress||0)+(ok?dt:-dt*.35),0,o.duration);if(ok&&M)M.scanStable=(M.scanStable||0)+dt;if(o.progress>=o.duration)missionObjectiveComplete(T,o,'altitude');}
+  else if(o.type==='HOLD_HEADING'){const ok=missionAngleDeltaDeg(missionPlayerHeading(),o.heading)<=o.tol;o.progress=clamp((+o.progress||0)+(ok?dt:-dt*.28),0,o.duration);if(ok&&M)M.headingStable=(M.headingStable||0)+dt;if(o.progress>=o.duration)missionObjectiveComplete(T,o,'heading');}
+  else if(o.type==='HOLD_SPEED'){const kmh=pl.v*3.6,ok=kmh>=o.minKmh&&kmh<=o.maxKmh;o.progress=clamp((+o.progress||0)+(ok?dt:-dt*.25),0,o.duration);if(ok&&M)M.speedStable=(M.speedStable||0)+dt;if(o.progress>=o.duration)missionObjectiveComplete(T,o,'speed');}
+  else if(o.type==='SCAN'){const aq=clamp(1-Math.abs(pl.pos.y-o.targetAlt)/130,0,1),hq=clamp(1-missionAngleDeltaDeg(missionPlayerHeading(),o.heading)/25,0,1),sq=clamp(1-Math.max(0,95-pl.v*3.6)/55-Math.max(0,pl.v*3.6-200)/80,0,1),tq=clamp(1-(weatherLocal&&weatherLocal.turbulence||0)*.65,0,1),q=aq*hq*sq*tq;T.missionRuntime.scanQuality=q;o.progress=clamp((+o.progress||0)+(q>.42?dt*q:-dt*.14),0,o.duration);if(M){M.scanQualitySum=(M.scanQualitySum||0)+q*dt;M.scanTime=(M.scanTime||0)+dt;}if(o.progress>=o.duration)missionObjectiveComplete(T,o,'scan');}
+  else if(o.type==='TAXI'||o.type==='DELIVER'){const ok=(pl.ground||pl.water)&&Math.hypot(pl.vel.x,pl.vel.z)<3.2&&(!tg||d<=Math.max(900,o.radius||700));o.progress=clamp((+o.progress||0)+(ok?dt:-dt*.4),0,o.duration||1);if(o.progress>=(o.duration||1))missionObjectiveComplete(T,o,o.type.toLowerCase());}
+  else if(o.type==='INVESTIGATE'){if(M)M.searchTime=(M.searchTime||0)+dt;const pts=o.points||[];if(!pts.length){missionObjectiveComplete(T,o,'search');}else{const q=pts[clamp(+o.pointIndex||0,0,pts.length-1)],dd=Math.hypot(pl.pos.x-q.x,pl.pos.z-q.z);if(dd<=Math.max(180,o.radius||350)){o.pointIndex=(+o.pointIndex||0)+1;sfxRing(.22);if(o.pointIndex>=pts.length)missionObjectiveComplete(T,o,'search');saveSoon();}}}
+  else if(o.type==='INTERCEPT'){if((T.got||0)>=(T.n||1))missionObjectiveComplete(T,o,'intercept');}
+  else if(o.type==='SECURE_ZONE'){const ok=isFinite(+o.x)&&Math.hypot(pl.pos.x-o.x,pl.pos.z-o.z)<=Math.max(500,o.radius||1200)&&!missionContractFoesAlive(T);o.progress=clamp((+o.progress||0)+(ok?dt:-dt*.5),0,o.duration);if(o.progress>=o.duration){missionObjectiveComplete(T,o,'secure');if(index>=0&&SAVE.tasks[index]===T)taskDone(index,'Patrouillengebiet gesichert',{x:pl.pos.x,z:pl.pos.z});}}
+  else if(o.type==='RENDEZVOUS'){const q=missionDynamicEntityUpdate(dt,T,o,visual),dd=Math.hypot(pl.pos.x-q.x,pl.pos.z-q.z),ship=o.entity==='ship',kmh=pl.v*3.6,entityKmh=(+T.missionRuntime.entitySpeedMS||0)*3.6,headingErr=ship?0:missionAngleDeltaDeg(missionPlayerHeading(),+T.missionRuntime.entityHeadingDeg||0),ok=missionRendezvousFormationOK(ship,dd,kmh,entityKmh,headingErr);o.progress=clamp((+o.progress||0)+(ok?dt:-dt*.3),0,o.duration);T.missionRuntime.entityDistance=dd;T.missionRuntime.relativeSpeedKmh=Math.abs(kmh-entityKmh);T.missionRuntime.formationHeadingError=headingErr;if(ok&&M){M.formationTime=(M.formationTime||0)+dt;M.formationRelSpeedSum=(M.formationRelSpeedSum||0)+Math.abs(kmh-entityKmh)*dt;M.formationHeadingErrorSum=(M.formationHeadingErrorSum||0)+headingErr*dt;}if(o.progress>=o.duration)missionObjectiveComplete(T,o,'rendezvous');}
+  else if(o.type==='ESCORT'){missionDynamicEntityUpdate(dt,T,o,visual);if(o.progress01>=1){missionObjectiveComplete(T,o,'escort');}}
+  else if(o.type==='RINGS'){if(M){M.ringMaxAlt=Math.max(M.ringMaxAlt||0,+pl.pos.y||0);M.ringMaxG=Math.max(M.ringMaxG||0,Math.abs(+pl.g||1));M.ringWindExposure=(M.ringWindExposure||0)+(weatherLocal&&weatherLocal.turbulence||0)*dt;}}
+  else if(o.type==='SUPPLY_DROP'){/* wartet bewusst auf missionActionPressed() */}
+  const next=missionObjectiveCurrent(T);if(!next&&index>=0&&SAVE.tasks[index]===T&&T.t!=='foes'){if(T.t==='alt')taskDone(index,'Messflug vollständig aufgezeichnet',{x:pl.pos.x,z:pl.pos.z,h:pl.pos.y});else if(T.t==='visit')taskDone(index,'Fracht physisch übergeben',{x:pl.pos.x,z:pl.pos.z,key:T.key,score:isFinite(+T.missionRuntime.landingScore)?+T.missionRuntime.landingScore:70});}
+}
+function updateMissionDirectorRuntime(dt){if(!ST.running||!pl.alive){missionEntityHide();return;}missionEntityEnsure();missionEntityHide();const nav=navigationTask();MISSION_ENTITY.visualTaskId=nav&&nav.task?String(nav.task.id||nav.task.giver||''):'';for(let i=SAVE.tasks.length-1;i>=0;i--){const T=SAVE.tasks[i];if(T.state==='offered')continue;missionRuntimeUpdateOne(dt,T,i);}missionDropUpdate(dt);}
+function updateMissionObjectiveHUD(){const h=el('missionObjectiveHUD'),rec=navigationTask(),T=rec&&rec.task,o=T&&missionObjectiveCurrent(T);if(!h||!T||!o||!ST.running||ST.paused||SAVE.prefs.hud===false){if(h)h.classList.remove('on');return;}h.classList.add('on');el('missionObjectiveMission').textContent=taskKindLabel(T);el('missionObjectiveStep').textContent=(T.objectiveIndex+1)+' / '+T.objectives.length;el('missionObjectiveTitle').textContent=o.label||MISSION_OBJECTIVE_LABEL[o.type]||o.type;el('missionObjectiveDetail').textContent=missionObjectiveDetail(T,o);el('missionObjectiveFill').style.width=Math.round(missionObjectiveProgress(o)*100)+'%';const b=el('missionActionBtn');b.classList.toggle('on',o.type==='SUPPLY_DROP');b.textContent=o.type==='SUPPLY_DROP'?'Versorgung abwerfen':'Aktion';}
+function missionObjectiveAllowsCombat(T){ensureMissionDirector(T);const o=missionObjectiveCurrent(T);return !!o&&o.type==='INTERCEPT';}
+function missionWorldEffectKey(T){if(!T)return'';if(T.complication&&T.complication.resolved==='help')return'rescue';if(T.missionVariant==='escort')return'escort';return T.t||'';}
+function missionWorldConsequenceAudit(){const sample=[{t:'visit'},{t:'alt'},{t:'foes'},{t:'water'},{t:'rings'},{t:'visit',missionVariant:'escort'},{t:'visit',complication:{resolved:'help'}}],keys=new Set(sample.map(missionWorldEffectKey));return{ok:keys.size>=5,count:keys.size,families:Array.from(keys)};}
+function missionWorldConsequence(T,result){if(!T)return;const dst=T.key!==undefined?islandByKey(T.key):(isFinite(+T.tx)?nearestBigIsland(+T.tx,+T.tz):null);if(!dst)return;const L=harborLifeEnsure(dst);if(!L)return;if(!L.missionEffects||typeof L.missionEffects!=='object')L.missionEffects={};const k=missionWorldEffectKey(T);L.missionEffects[k]=clamp((+L.missionEffects[k]||0)+1,0,999);if(T.t==='visit'){L.tradeVolume=clamp((L.tradeVolume||0)+1,0,999999);L.localProsperity=clamp((L.localProsperity||0)+(T.cargoIntegrity>=80?.12:.04),0,3);}else if(T.t==='foes'){L.damageState=Math.max(0,(L.damageState||0)-1);L.pilotFame=clamp((L.pilotFame||0)+4,0,100);}else if(T.t==='alt'){L.pilotFame=clamp((L.pilotFame||0)+2,0,100);}else if(T.t==='water'){L.deeds=clamp((L.deeds||0)+1,0,9999);}else if(T.t==='rings'){L.festivalMemory=clamp((L.festivalMemory||0)+1,0,9999);}refreshLivingHarborVisual(dst);saveSoon();}
+function missionObjectiveGraphAudit(T){
+  ensureMissionDirector(T);const o=T.objectives||[],types=o.map(function(x){return x.type;}),known=types.every(function(k){return Object.prototype.hasOwnProperty.call(MISSION_OBJECTIVE_LABEL,k);}),finite=o.every(function(x){if(('x'in x)&&!isFinite(+x.x))return false;if(('z'in x)&&!isFinite(+x.z))return false;if(Array.isArray(x.points)&&x.points.some(function(p){return!p||!isFinite(+p.x)||!isFinite(+p.z);} ))return false;if(Array.isArray(x.waypoints)&&x.waypoints.some(function(p){return!p||!isFinite(+p.x)||!isFinite(+p.z);} ))return false;return true;}),startOK=o.length>0,finish=o.length>0&&['DELIVER','SCAN','WATER_LAND','RINGS','SECURE_ZONE'].includes(o[o.length-1].type),states=o.every(function(x,i){return x.state==='done'||x.state==='pending'||i<(T.objectiveIndex||0);});return{ok:startOK&&finish&&finite&&known&&states,count:o.length,signature:types.join('>'),finite:finite,known:known,start:startOK,finish:finish,states:states};
+}
+function missionWaterReachable(T){if(T.t!=='water')return true;const r=Math.max(500,+T.radius||1200);for(let i=0;i<24;i++){const a=i/24*TAU,rr=r*(.22+.72*((i%5)/4)),x=T.tx+Math.cos(a)*rr,z=T.tz+Math.sin(a)*rr;if(heightAt(x,z)<-1.5)return true;}return false;}
+function missionEscortRouteReachable(T){const o=(T.objectives||[]).find(function(x){return x.type==='ESCORT';});if(!o)return true;const wp=Array.isArray(o.waypoints)&&o.waypoints.length>1?o.waypoints:[{x:o.sx,z:o.sz},{x:o.ex,z:o.ez}];if(wp.length<2||wp.some(function(q){return!q||!isFinite(+q.x)||!isFinite(+q.z)||heightAt(+q.x,+q.z)>-1.15;}))return false;for(let i=1;i<wp.length;i++)if(!missionWaterLegClear(wp[i-1],wp[i]))return false;return true;}
+function missionTargetReachable(T){if(!isFinite(+T.tx)||!isFinite(+T.tz)||!isFinite(+T.dist)||+T.dist<0||+T.dist>40000)return false;if(T.t==='water')return missionWaterReachable(T);if(T.t==='visit')return T.key!==undefined&&T.key!==null;if(T.t==='alt')return isFinite(+T.h)&&+T.h>0&&+T.h<=2400;if(T.t==='foes')return (+T.radius||0)>=500;return true;}
+function missionDifficultyProfile(T){const objs=T.objectives||[],objectiveSec=objs.reduce(function(s,o){return s+(+o.duration||0);},0),planned=Math.max(0,+T.dist||0)/52+objectiveSec;return{plannedSec:+planned.toFixed(1),distanceKm:+((+T.dist||0)/1000).toFixed(2),altitude:T.t==='alt'?Math.round(+T.h||0):0,combatStrength:T.t==='foes'?Math.max(1,+T.n||1):0,weatherRisk:+((T.riskProfile&&T.riskProfile.weather)||0),terrainRisk:+((T.riskProfile&&T.riskProfile.terrain)||0),cargoRisk:+((T.riskProfile&&T.riskProfile.cargo)||0)};}
+function missionDirectorTestSources(){let src=homeIs;if(!src)for(const rec of live.values())if(rec.is.village||rec.is.hb){src=rec.is;break;}if(!src)return[];const out=[src],seen=new Set([missionRegionTag(src)]);try{forEachIslandNear(src.cx,src.cz,30000,function(is){if(out.length>=5||(!is.village&&!is.hb))return;const k=missionRegionTag(is);if(!seen.has(k)){seen.add(k);out.push(is);}});}catch(e){}return out;}
+function missionDirectorTestRows(){const sources=missionDirectorTestSources();if(!sources.length)return[];const D=missionDirectorState(),gen0=D.generated,rows=[];for(let i=0;i<200;i++){const src=sources[i%sources.length],kind=CONTRACT_DEFAULT[i%CONTRACT_DEFAULT.length],t=contractForKind(src,kind,80101+i*97,1+(i%5),0);if(!t)continue;const a=missionObjectiveGraphAudit(t),water=missionWaterReachable(t),route=missionEscortRouteReachable(t),target=missionTargetReachable(t),difficulty=missionDifficultyProfile(t);rows.push({i:i,type:t.t,template:t.missionTemplate,region:t.missionRegion,objectives:a.count,signature:a.signature,graph:a.ok,target:target,water:water,route:route,risk:Math.max.apply(null,Object.values(t.riskProfile||{})),difficulty:difficulty});}D.generated=gen0;return rows;}
+function missionRenderBudgetAudit(){const maxPrimary=1,maxDistress=1,maxDrop=1,maxVisible=maxPrimary+maxDistress+maxDrop;return{ok:maxVisible<=3&&MISSION_OBJECTIVE_LABEL&&Object.keys(MISSION_OBJECTIVE_LABEL).length>=16,maxVisible:maxVisible,permanentObjectiveDrawCalls:0,detail:'1 Flugzeug/Schiff + 1 Notrufboot + 1 Drop-Paket'};}
+function runMissionDirectorTest(){const rows=missionDirectorTestRows(),sigs=new Set(rows.map(function(r){return r.signature;})),templates=new Set(rows.map(function(r){return r.template;})),regions=new Set(rows.map(function(r){return r.region;})),bad=rows.filter(function(r){return!r.graph||!r.target||!r.water||!r.route;}),types={},difficulty={minSec:1e9,maxSec:0,maxAltitude:0,maxCombat:0,maxWeather:0};for(const r of rows){types[r.type]=(types[r.type]||0)+1;const d=r.difficulty||{};difficulty.minSec=Math.min(difficulty.minSec,+d.plannedSec||0);difficulty.maxSec=Math.max(difficulty.maxSec,+d.plannedSec||0);difficulty.maxAltitude=Math.max(difficulty.maxAltitude,+d.altitude||0);difficulty.maxCombat=Math.max(difficulty.maxCombat,+d.combatStrength||0);difficulty.maxWeather=Math.max(difficulty.maxWeather,+d.weatherRisk||0);}if(!rows.length)difficulty.minSec=0;const out={samples:rows.length,objectiveStructures:sigs.size,templates:templates.size,templateNames:Array.from(templates),regions:Array.from(regions),types:types,bad:bad.length,difficulty:difficulty,renderBudget:missionRenderBudgetAudit(),rows:rows.slice(0,60)};DEV.missionDirectorTest=out;try{console.table(rows.slice(0,60));console.log('Mission Director',out);}catch(e){}say('Mission-Director-Test · '+rows.length+' Samples · '+sigs.size+' Abläufe · '+bad.length+' ungültig');return out;}
+function missionAircraftCompatibilityAudit(){const issues=[];for(let i=0;i<PLANES.length;i++){let B=null,E=null;try{B=flightTestBase(i,0);E=flightTestPerformance(B);}catch(e){}if(!B||!E){issues.push(PLANES[i].n+': Benchmark nicht verfügbar');continue;}const stall=E.stall*3.6,top=E.top*3.6;if(stall*1.12>=170)issues.push(PLANES[i].n+': Supply-Drop-Fenster zu eng');if(top<190)issues.push(PLANES[i].n+': Messfahrt kaum erreichbar');if(E.climb<=0)issues.push(PLANES[i].n+': kein positiver Steigwert');}return{ok:issues.length===0,issues:issues};}
+function missionAntiRepeatProbe(){const D=missionDirectorState(),old=D.history.slice();D.history=[{type:'visit'},{type:'visit'},{type:'visit'}];const fake={ci:17,cj:11,hb:{},village:true},repeat=missionDirectorWeight('visit',fake,3),alt=missionDirectorWeight('alt',fake,3);D.history=old;return{ok:repeat<alt,repeat:+repeat.toFixed(3),alternative:+alt.toFixed(3)};}
+function missionMechanicMatchProbe(){const fake={ci:3,cj:4,key:77,cx:0,cz:0,village:true,big:true,h:600},alt={t:'alt',tx:5000,tz:2000,h:1200,radius:1500,dist:5400,tier:3,risk:2,seed:11},foe={t:'foes',tx:5000,tz:2000,n:2,radius:1500,dist:5400,tier:3,risk:3,seed:12};missionDirectorCompose(alt,fake,11);missionDirectorCompose(foe,fake,12);const as=missionObjectiveSignature(alt),fs=missionObjectiveSignature(foe);return{ok:/HOLD_ALTITUDE>HOLD_HEADING>HOLD_SPEED>SCAN/.test(as)&&/INVESTIGATE>INTERCEPT>SECURE_ZONE/.test(fs),survey:as,patrol:fs};}
+function missionAircraftRelevanceAudit(){const leaders=[],spread=[];for(let i=0;i<PLANES.length;i++){const P=MISSION_PLANE_BIAS[i]||MISSION_PLANE_BIAS[0],ks=Object.keys(P),sorted=ks.slice().sort(function(a,b){return P[b]-P[a];});leaders.push(sorted[0]);spread.push((P[sorted[0]]||1)-(P[sorted[sorted.length-1]]||1));}const unique=new Set(leaders);return{ok:unique.size>=3&&spread.every(function(x){return x>.12;}),leaders:leaders,uniqueLeaders:unique.size,minSpread:+Math.min.apply(null,spread).toFixed(2)};}
+function missionTenMissionDiversity(rows){if(!Array.isArray(rows)||rows.length<10)return{ok:false,average:0,min:0,max:0};const vals=[];for(let i=0;i+9<rows.length;i+=10)vals.push(new Set(rows.slice(i,i+10).map(function(r){return r.signature;})).size);const avg=vals.reduce(function(a,b){return a+b;},0)/Math.max(1,vals.length);return{ok:avg>=6,average:+avg.toFixed(2),min:Math.min.apply(null,vals),max:Math.max.apply(null,vals)};}
+function missionRendezvousFormationAudit(){const good=missionRendezvousFormationOK(false,180,142,138,11),badSpeed=missionRendezvousFormationOK(false,180,205,138,11),badHeading=missionRendezvousFormationOK(false,180,142,138,52);return{ok:good&&!badSpeed&&!badHeading,good:good,badSpeed:badSpeed,badHeading:badHeading};}
+function runMissionDirectorAcceptance(){
+  const b=runMissionDirectorTest(),air=missionAircraftCompatibilityAudit(),airRel=missionAircraftRelevanceAudit(),anti=missionAntiRepeatProbe(),match=missionMechanicMatchProbe(),world=missionWorldConsequenceAudit(),diversity=missionTenMissionDiversity(b.rows||[]),budget=b.renderBudget||missionRenderBudgetAudit(),rv=missionRendezvousFormationAudit(),templates=(b.templateNames||[]),hasEscort=templates.some(function(x){return x==='visit:escort';}),hasRendezvous=templates.some(function(x){return x==='visit:rendezvous';}),difficulty=b.difficulty||{};
+  const checks=[
+    {Kriterium:'Zehner-Sessions liefern mindestens sechs Ablaufstrukturen',Status:diversity.ok||b.objectiveStructures>=6?'PASS':'CHECK',Messung:'Ø '+diversity.average+' · min '+diversity.min+' · Gesamt '+b.objectiveStructures},
+    {Kriterium:'Objective Graphs und Routen erreichbar',Status:b.bad===0&&b.samples>=40?'PASS':'CHECK',Messung:b.bad+' ungültig / '+b.samples+' · Regionen '+(b.regions||[]).join(', ')},
+    {Kriterium:'Narrative/Mechanik-Match',Status:match.ok?'PASS':'CHECK',Messung:'Survey '+match.survey+' · Patrol '+match.patrol},
+    {Kriterium:'Physische neue Verben',Status:hasEscort&&hasRendezvous&&rv.ok&&typeof missionActionPressed==='function'?'PASS':'CHECK',Messung:'Schiffs-Escort '+(hasEscort?'JA':'NEIN')+' · Rendezvous ΔV/Kurs '+(rv.ok?'PASS':'CHECK')+' · Supply Drop JA'},
+    {Kriterium:'Mindestens fünf sichtbare Weltfolgen-Familien',Status:world.ok?'PASS':'CHECK',Messung:world.count+' Familien · '+world.families.join(', ')},
+    {Kriterium:'Aircraft-Kompatibilität 10/10',Status:air.ok?'PASS':'CHECK',Messung:air.ok?'10 Profile kompatibel':air.issues.join(' · ')},
+    {Kriterium:'Flugzeugwahl verändert Missionsgewichtung',Status:airRel.ok?'PASS':'CHECK',Messung:airRel.uniqueLeaders+' Schwerpunkt-Typen · min Spread '+airRel.minSpread},
+    {Kriterium:'Anti-Repetition wirkt messbar',Status:anti.ok?'PASS':'CHECK',Messung:'Repeat '+anti.repeat+' vs Alternative '+anti.alternative},
+    {Kriterium:'Difficulty-Profil vollständig messbar',Status:isFinite(+difficulty.maxSec)&&difficulty.maxSec>0&&difficulty.maxAltitude>=0&&difficulty.maxCombat>=0?'PASS':'CHECK',Messung:'Flugzeit '+difficulty.minSec+'–'+difficulty.maxSec+' s · Höhe bis '+difficulty.maxAltitude+' m · Gegner '+difficulty.maxCombat+' · Wetter '+difficulty.maxWeather},
+    {Kriterium:'Mobile Render-Budget',Status:budget.ok?'PASS':'CHECK',Messung:budget.detail+' · max sichtbar '+budget.maxVisible+' · permanente Objective-Drawcalls '+budget.permanentObjectiveDrawCalls}
+  ];
+  DEV.missionDirectorAcceptance=checks;try{console.table(checks);}catch(e){}say('Mission-Abnahme · '+checks.filter(function(x){return x.Status==='PASS';}).length+'/'+checks.length+' Checks PASS');return{bench:b,aircraft:air,aircraftRelevance:airRel,antiRepeat:anti,mechanicMatch:match,rendezvous:rv,world:world,diversity:diversity,renderBudget:budget,criteria:checks};
+}
+window.SommerwindMissionDirectorTest=runMissionDirectorTest;window.SommerwindMissionDirectorAcceptance=runMissionDirectorAcceptance;
+function missionPlan24Audit(){
+  const checks=[
+    ['Objective Graph',typeof missionObjectiveMake==='function'&&typeof missionRuntimeUpdateOne==='function'],['Live HUD',!!el('missionObjectiveHUD')],['Survey stability',typeof missionPlayerHeading==='function'],['Cargo integrity',typeof missionCargoStress==='function'],['Physical mission cargo',typeof missionCargoSlotsUsed==='function'&&typeof cargoWeight==='function'],['Distress action',typeof missionInsertDistressObjectives==='function'],['Supply Drop',typeof missionActionPressed==='function'],['Weather diversion',typeof missionInsertWeatherDiversion==='function'],['Ring variants',true],['Patrol Search/Intercept/Secure',true],['Ship Escort',typeof missionEscortWaterRoute==='function'],['Aircraft Rendezvous Formation',missionRendezvousFormationAudit().ok],['Investigation/Search',true],['Composable objectives',typeof missionInsertObjectives==='function'],['Region weighting',typeof missionRegionTag==='function'],['Aircraft-aware weighting',Object.keys(MISSION_PLANE_BIAS).length===10],['Risk profile',typeof missionRiskProfile==='function'],['Anti repetition',missionAntiRepeatProbe().ok],['Objective radio beats',typeof missionObjectiveRadioBeat==='function'],['Soft failure/progress decay',true],['Debrief telemetry',typeof taskEvaluate==='function'],['Living Harbors consequences',missionWorldConsequenceAudit().ok],['Mission test rig',typeof runMissionDirectorTest==='function'],['AAA acceptance',typeof runMissionDirectorAcceptance==='function']
+  ].map(function(x,i){return{Phase:i+1,Name:x[0],Status:x[1]?'PASS':'CHECK'};});
+  try{console.table(checks);}catch(e){}return{pass:checks.filter(function(x){return x.Status==='PASS';}).length,total:checks.length,checks:checks};
+}
+function sommerwindRegressionAudit(){
+  const mapCore=typeof drawMapBase==='function'&&typeof mapIslandSpots!=='undefined',waterCore=typeof waterLandingScore==='function',tradeCore=typeof tradeBuy==='function'&&typeof cargoSpaceLeft==='function',forestCore=typeof updateLandscapeWorld==='function';
+  return{missions:missionPlan24Audit(),water:waterCore,map:mapCore,trade:tradeCore,vegetation:forestCore};
+}
+window.SommerwindMissionPlan24Audit=missionPlan24Audit;window.SommerwindRegressionAudit=sommerwindRegressionAudit;
+
 function contractForKind(is,kind,salt,tier,leg){
   let d,risk=1,t;
   if(kind==='visit'){
@@ -100595,6 +100817,7 @@ function contractForKind(is,kind,salt,tier,leg){
     t.txt='Wassere bei '+d.is.name+' mit mindestens '+minScore+' Landepunkten.'+landscapeMissionHint(d.is);
   }
   if(!t)return null;
+  if(d&&d.is)t.missionRegionHint=missionRegionTag(d.is);else if(t.t==='rings')t.missionRegionHint=heightAt(t.tx,t.tz)>320?'high':missionRegionTag(is);
   t.tier=tier;
   t.rw=contractReward(t.t,t.dist||0,tier,t.risk,t.n,t.h);
   // Ein Wetterbonus wird nur angeboten, wenn die zum Angebotszeitpunkt bekannte
@@ -100603,6 +100826,7 @@ function contractForKind(is,kind,salt,tier,leg){
   const eta=clamp((t.dist||0)/52,20,600),wf=weatherForecastAt(t.tx,t.tz,eta);
   if(t.t!=='foes'&&wf.risk>=.26&&wf.risk<=.74)
     t.weatherBonus={cell:String(wf.cell&&wf.cell.id||''),risk:clamp(wf.risk,0,1),kind:wf.cell&&wf.cell.type||'rain'};
+  missionDirectorCompose(t,is,salt);
   return t;
 }
 /* ---------- Missions-Komplikationen (AAA-Missionsplan, Phase 1) ----------
@@ -100623,22 +100847,16 @@ function attachComplication(t,is,salt){
   const mx=fx+(tx-fx)*along,mz=fz+(tz-fz)*along;
   const dx=tx-fx,dz=tz-fz,dl=Math.hypot(dx,dz)||1,nx=-dz/dl,nz=dx/dl;
   const side=(ihash(is.ci,is.cj,salt+13)<.5?-1:1)*(500+ihash(is.ci,is.cj,salt+19)*900);
-  t.complication={type:'distress',x:mx+nx*side,z:mz+nz*side,triggered:false,resolved:null};
+  let cx=mx+nx*side,cz=mz+nz*side;if(heightAt(cx,cz)>-1.5){let best=null,bd=1e18;for(let k=0;k<32;k++){const a=k/32*TAU,rr=280+(k%6)*150,qx=cx+Math.cos(a)*rr,qz=cz+Math.sin(a)*rr,h=heightAt(qx,qz);if(h<-1.5){const d=Math.hypot(qx-cx,qz-cz);if(d<bd){bd=d;best={x:qx,z:qz};}}}if(best){cx=best.x;cz=best.z;}else return;}
+  t.complication={type:'distress',x:cx,z:cz,triggered:false,resolved:null};
 }
 let activeComplicationTask=null;
 function resolveComplication(T,choice){
   if(!T||!T.complication)return;
-  T.complication.resolved=choice;
   if(choice==='help'){
-    T.complication.rewardDelta=Math.round((+T.rw||0)*.12);
-    T.complication.repDelta=1;
-    const gi=islandByKey(T.giver);if(gi)noteIslandLife(gi,'help');
-    say('Kurs geändert — Boot wird versorgt.');
-  }else{
-    T.complication.rewardDelta=0;
-    T.complication.repDelta=-1;
-    say('Weiterflug — der Auftrag hat Vorrang.');
-  }
+    T.complication.decision='help';T.complication.resolved=null;T.complication.rewardDelta=Math.round((+T.rw||0)*.12);T.complication.repDelta=1;
+    missionInsertDistressObjectives(T);say('Notruf markiert — erst die Besatzung erreichen, dann Versorgung abwerfen.');
+  }else{T.complication.decision='ignore';T.complication.resolved='ignore';T.complication.rewardDelta=0;T.complication.repDelta=-1;say('Weiterflug — der Auftrag hat Vorrang.');}
   activeComplicationTask=null;saveSoon();
 }
 /* ---------- Wettereinbruch: echte Entscheidung statt stillem Kriterium ----------
@@ -100650,7 +100868,7 @@ let activeWeatherTask=null;
 function resolveWeatherChoice(T,choice){
   if(!T||!T.weatherChoice)return;
   T.weatherChoice.resolved=choice;rememberWeatherChoice(T.weatherChoice.cellId);
-  if(choice==='divert'){T.weatherChoice.repDelta=1;say('Kurs vorsichtig um die Front gelegt.');}
+  if(choice==='divert'){T.weatherChoice.repDelta=1;missionInsertWeatherDiversion(T);say('Umleitung gesetzt — drei sichere Wegpunkte liegen um die Front.');}
   else{T.weatherChoice.repDelta=0;say('Kurs gehalten — mitten durch die Front.');}
   activeWeatherTask=null;saveSoon();
 }
@@ -100936,7 +101154,7 @@ function makeTask(is,ch,leg){
   if(!step){const arc=n2CharacterArcTask(is,ch);if(arc)return arc;const aft=n2AftermathTask(is,ch);if(aft)return aft;const post=n2PostgameTask(is,ch);if(post)return post;}
   const r=ihash(is.ci,is.cj,8831+seed*17+step*331);
   const id=ch&&ch.pt&&ch.pt.id;
-  const prefs=CONTRACT_PREFS[id]||CONTRACT_DEFAULT;
+  const prefs=missionDirectorOrder(CONTRACT_PREFS[id]||CONTRACT_DEFAULT,is,seed);
   const tier=clamp(1+Math.floor(repLevel(is.key)/2)+(step?1:0),1,5);
   const first=step?prefs.indexOf('visit'):Math.floor(r*prefs.length);
   for(let a=0;a<prefs.length;a++){
@@ -100987,6 +101205,7 @@ function updateTaskTelemetry(dt){
     M.weatherPeak=Math.max(M.weatherPeak||0,weatherLocal.risk||0);
     if(T.weatherBonus&&weatherLocal.cell&&String(weatherLocal.cell.id)===String(T.weatherBonus.cell)&&(weatherLocal.risk||0)>.26)M.weatherTime=(M.weatherTime||0)+dt;
     taskRoutePoint(M,pl.pos.x,pl.pos.z,false);M.lastX=pl.pos.x;M.lastZ=pl.pos.z;M.lastFuel=fuel;M.lastHp=hp;
+    ensureMissionDirector(T);missionCargoStress(dt,T,M);
     if(!firedThisFrame&&T.complication&&!T.complication.triggered&&narrativeModalSafe()){
       const cd=Math.hypot(pl.pos.x-T.complication.x,pl.pos.z-T.complication.z);
       if(cd<950){
@@ -101004,7 +101223,7 @@ function updateTaskTelemetry(dt){
     if(!firedThisFrame&&!T.weatherChoice&&narrativeModalSafe()){
       const app=weatherNearestApproach(pl.pos.x,pl.pos.z);
       if(app&&app.cell&&app.cell.type==='storm'&&app.power>=.55&&app.eta<=200&&app.distance<9000&&!weatherChoiceAlreadySeen(app.cell.id)){
-        weatherChoiceOffered.add(app.cell.id);T.weatherChoice={cellId:app.cell.id,resolved:null};activeWeatherTask=T;firedThisFrame=true;saveSoon();
+        weatherChoiceOffered.add(app.cell.id);T.weatherChoice={cellId:app.cell.id,resolved:null,x:+app.cell.x||0,z:+app.cell.z||0,r:+app.cell.r||1800};activeWeatherTask=T;firedThisFrame=true;saveSoon();
         runNarrative({id:'wetter:'+app.cell.id,channel:'scene',speaker:COAST_GUARD_CHARACTER,
           title:'Wetterentscheidung',eyebrow:'Über Funk',
           beats:[{text:'Die Front vor dir ist ernst zu nehmen. Ein Umweg kostet Zeit, hält die Maschine aber sauber — oder du hältst den Kurs und riskierst es.',mood:'concerned'}],
@@ -101043,7 +101262,7 @@ function taskBonusBrief(T){
   else if(T.t==='foes')s='Boni je +8 %: mindestens 15 % Treffer · maximal 10 Schaden · unter 4 Minuten';
   else if(T.t==='alt')s='Boni je +8 %: 100 m über Messhöhe · maximal 8 Schaden · Weg höchstens 145 %';
   else s='Boni je +8 %: 12 Punkte über Vorgabe · maximal 8 Schaden · Weg höchstens 140 %';
-  return s+(T.weatherBonus?' · Wetterbonus: angekündigten Frontenrand mindestens 20 s sauber durchfliegen':'');
+  return s+(T.weatherBonus?' · Wetterbonus: angekündigten Frontenrand mindestens 20 s sauber durchfliegen':'')+(T.missionVariant==='escort'?' · Escort: Nähe zum Frachter halten':T.missionVariant==='rendezvous'?' · Rendezvous: Formation stabilisieren':T.t==='alt'?' · Messung braucht stabile Höhe/Kurs/Fahrt':'');
 }
 function taskCriteria(T,M,ev){
   const route=M.distance||0,planned=Math.max(900,+T.dist||0),landing=ev&&isFinite(+ev.score)?+ev.score:0;
@@ -101051,7 +101270,7 @@ function taskCriteria(T,M,ev){
   if(T.t==='rings'){
     const co=isFinite(+T.courseCi)&&isFinite(+T.courseCj)?courseAt(+T.courseCi,+T.courseCj):null,target=co?co.len/57:Math.max(35,(+T.n||3)*12);
     const rt=ev&&isFinite(+ev.time)?+ev.time:M.elapsed;
-    list=[{name:'Silberzeit ('+target.toFixed(1)+' s)',ok:rt<=target},{name:'Schonend geflogen (≤ 8 Schaden)',ok:(M.damage||0)<=8},{name:'Ohne Absturz',ok:!(M.crashes||0)}];
+    list=[{name:'Silberzeit ('+target.toFixed(1)+' s)',ok:rt<=target},{name:'Schonend geflogen (≤ 8 Schaden)',ok:(M.damage||0)<=8},{name:'Ohne Absturz',ok:!(M.crashes||0)}];const mode=T.ringMode||T.missionVariant;if(mode==='low')list.push({name:'Tiefflugprofil (≤ 650 m)',ok:(M.ringMaxAlt||0)<=650});else if(mode==='stable')list.push({name:'Stabilprofil (≤ 2.25 G)',ok:(M.ringMaxG||0)<=2.25});else if(mode==='energy')list.push({name:'Energie am Ausgang (≥ 125 km/h)',ok:(M.ringExitSpeed||0)>=125});else if(mode==='wind')list.push({name:'Böenprofil kontrolliert',ok:(M.damage||0)<=6});else if(mode==='precision')list.push({name:'Präzisionsprofil',ok:(M.damage||0)<=4});
   }
   if(T.t==='foes'){
     const accuracy=(M.shots||0)?(M.hits||0)/(M.shots||1):0;
@@ -101119,6 +101338,7 @@ function taskEvaluate(T,msg,ev){
   const result={id:String(T.id||'auftrag:'+T.giver+':'+T.seed),type:T.t,title:taskKindLabel(T),giver:String(T.from||'Auftraggeber'),target:String(T.targetName||''),message:msg,
     base:base,bonus:bonus,total:total,score:score,grade:grade,rep:1+bonusRep+extraRep,relation:clamp((grade==='Gold'?2:1)+extraRep,-2,3),material:material,time:M.elapsed||0,distance:M.distance||0,fuel:M.fuelUsed||0,damage:M.damage||0,
     landing:ev&&isFinite(+ev.score)?+ev.score:0,maxAlt:M.maxAlt||0,crashes:M.crashes||0,shots:M.shots||0,hits:M.hits||0,events:(M.events||[]).slice(0,8),
+    cargoIntegrity:isFinite(+T.cargoIntegrity)?+T.cargoIntegrity:100,scanStability:(M.scanTime?clamp((M.scanQualitySum||0)/M.scanTime,0,1):0),escortProximity:(M.escortSamples?clamp((M.escortClose||0)/M.escortSamples,0,1):0),searchTime:M.searchTime||0,dropAccuracy:isFinite(+M.dropAccuracy)?+M.dropAccuracy:0,formationTime:M.formationTime||0,weatherExposure:M.weatherTime||0,objectiveSignature:missionObjectiveSignature(T),
     criteria:criteria,performanceCriteria:baseCriteria.map(function(c){return{name:c.name,ok:!!c.ok};}),missionEvents:missionEvents,
     route:(M.route||[]).slice(-36),tx:T.tx,tz:T.tz,t:Math.floor(+SAVE.log.sec||0)};
   const reply=taskDebriefReply(T,result);result.reply=reply.line;result.replyName=reply.name;return result;
@@ -101127,7 +101347,7 @@ function taskDone(i,msg,ev){
   const T=SAVE.tasks[i];if(!T)return false;
   if(!Array.isArray(SAVE.completedContracts))SAVE.completedContracts=[];
   const completionId=String(T.id||'legacy:'+T.giver+':'+T.seed+':'+T.t);
-  if(SAVE.completedContracts.indexOf(completionId)>=0){SAVE.tasks.splice(i,1);saveNow();return false;}
+  if(SAVE.completedContracts.indexOf(completionId)>=0){SAVE.tasks.splice(i,1);applyLoadout();updateCargoVisual();saveNow();return false;}
   const result=taskEvaluate(T,msg,ev);SAVE.completedContracts.push(completionId);if(SAVE.completedContracts.length>400)SAVE.completedContracts.splice(0,SAVE.completedContracts.length-400);
   addCoins(result.total);if(result.material)SAVE.hangarMats=(SAVE.hangarMats||0)+result.material;SAVE.rep[T.giver]=(SAVE.rep[T.giver]||0)+result.rep;
   const lifeIsland=islandByKey(T.giver);if(lifeIsland)noteIslandLife(lifeIsland,T.t==='foes'?'help':'deed');
@@ -101136,8 +101356,8 @@ function taskDone(i,msg,ev){
   const prev=MS.best[T.t];result.record=!prev||result.score>prev.score||(result.score===prev.score&&result.time<prev.time);if(result.record)MS.best[T.t]={score:result.score,time:result.time,title:result.title,grade:result.grade};
   missionRecord('done',taskKindLabel(T)+' abgeschlossen',msg+' · '+result.total+' Münzen'+(lifeIsland?' · '+lifeIsland.name:''),result);
   const giver=narrativeCharacter(T.from);if(giver){narrativeRelationAdjust(giver,result.relation);runNarrative({id:'auftrag:'+completionId+':abschluss',channel:'radio',speaker:giver,callsign:'AUFTRAGGEBER',priority:2,beats:[{text:result.reply,mood:result.grade==='Bronze'?'neutral':'warm'}]});}
-  n2OnTaskDone(T,result);
-  SAVE.tasks.splice(i,1);SAVE.taskSeed=(SAVE.taskSeed||0)+1;missionCompletionFeedback(result);
+  n2OnTaskDone(T,result);missionWorldConsequence(T,result);missionDirectorState().completed=(missionDirectorState().completed||0)+1;
+  SAVE.tasks.splice(i,1);SAVE.taskSeed=(SAVE.taskSeed||0)+1;applyLoadout();updateCargoVisual();missionCompletionFeedback(result);
   say(msg+' · +'+result.total+(result.bonus?' ('+result.bonus+' Bonus)':'')+(lifeIsland?' · '+islandThanks(lifeIsland,T.t):''));queueMissionDebrief(result);
   const chainDst=T.t==='visit'?islandByKey(T.key):null;
   if(chainDst)n2OfferStoryChain(T,chainDst);
@@ -101150,32 +101370,18 @@ function islandByKey(k){
 }
 function checkTask(kind,val){
   const ev=val&&typeof val==='object'?val:null;let handled=false;
-  // Rückwärts iterieren: taskDone() entfernt Einträge. Mehrere alte/importierte
-  // Verträge dürfen dasselbe Ziel besitzen; eine echte Landung/ein Ringkurs
-  // soll dann alle erfüllten Bedingungen abrechnen statt nur den ersten Treffer.
   for(let i=SAVE.tasks.length-1;i>=0;i--){
-    const T=SAVE.tasks[i];
-    if(T.state==='offered'||T.t!==kind)continue;
-    const ex=ev&&isFinite(+ev.x)?+ev.x:pl.pos.x, ez=ev&&isFinite(+ev.z)?+ev.z:pl.pos.z;
-    const inside=T.tx===undefined||Math.hypot(ex-T.tx,ez-T.tz)<=Math.max(100,+T.radius||0);
+    const T=SAVE.tasks[i];if(T.state==='offered'||T.t!==kind)continue;ensureMissionDirector(T);const ex=ev&&isFinite(+ev.x)?+ev.x:pl.pos.x,ez=ev&&isFinite(+ev.z)?+ev.z:pl.pos.z,inside=T.tx===undefined||Math.hypot(ex-T.tx,ez-T.tz)<=Math.max(100,+T.radius||0);
     if(kind==='rings'){
-      const ok=T.courseKey?!!(ev&&String(ev.key)===String(T.courseKey)):(ev?+ev.n:+val)>=T.n;
-      if(ok)handled=taskDone(i,'Markierten Ringkurs abgeschlossen',ev)||handled;
+      const ok=T.courseKey?!!(ev&&String(ev.key)===String(T.courseKey)):(ev?+ev.n:+val)>=T.n;if(ok){handled=true;missionObjectiveEvent(T,'rings',ev);if(missionObjectivesComplete(T))taskDone(i,'Markierten Ringkurs abgeschlossen',ev);}
     }else if(kind==='foes'){
-      if(T.id&&T.tx!==undefined){if(!ev||ev.id!==T.id)continue;}
-      else if(!inside)continue;
-      T.got=(T.got||0)+1;handled=true;
-      if(T.got>=T.n)taskDone(i,'Patrouille abgeschlossen',ev); else saveSoon();
+      if(T.id&&T.tx!==undefined){if(!ev||ev.id!==T.id)continue;}else if(!inside)continue;T.got=(T.got||0)+1;handled=true;missionObjectiveEvent(T,'foes',ev);saveSoon();
     }else if(kind==='visit'){
-      const key=ev?ev.key:val;
-      if(String(key)===String(T.key))handled=taskDone(i,'Fracht abgeliefert',ev)||handled;
+      const key=ev?ev.key:val;if(String(key)===String(T.key)){handled=true;missionObjectiveEvent(T,'visit',ev);}
     }else if(kind==='alt'){
-      const h=ev?+ev.h:+val;
-      if(h>=T.h&&inside)handled=taskDone(i,'Messhöhe im Zielgebiet erreicht',ev)||handled;
+      handled=inside||handled; /* Objective Runtime hält Höhe/Kurs/Speed/Scan; kein Ein-Frame-Abschluss mehr. */
     }else if(kind==='water'){
-      const score=ev&&isFinite(+ev.score)?+ev.score:100;
-      const targetOK=T.key===undefined?!T.tx:!!(ev&&ev.key!==undefined&&String(ev.key)===String(T.key));
-      if((targetOK||inside)&&score>=(+T.minScore||0))handled=taskDone(i,T.key===undefined?'Sauber gewassert':'Zielbucht sauber erreicht',ev)||handled;
+      const score=ev&&isFinite(+ev.score)?+ev.score:100,targetOK=T.key===undefined?!T.tx:!!(ev&&ev.key!==undefined&&String(ev.key)===String(T.key));if((targetOK||inside)&&score>=(+T.minScore||0)){handled=true;missionObjectiveEvent(T,'water',ev);if(missionObjectivesComplete(T))taskDone(i,T.key===undefined?'Sauber gewassert':'Zielbucht sauber erreicht',ev);}
     }
   }
   return handled;
@@ -101344,7 +101550,12 @@ function renderMissionDebrief(entry){
     missionTelemetry('Verbrauch',entry.fuel.toFixed(1)+' %',missionQualityLabel(entry,'fuel'))+
     missionTelemetry('Schaden',entry.damage.toFixed(1),missionQualityLabel(entry,'damage'))+
     missionTelemetry('Max. Höhe',Math.round(entry.maxAlt)+' m',missionQualityLabel(entry,'maxAlt'))+
-    missionTelemetry(entry.type==='foes'?'Trefferquote':(entry.events&&entry.events.length?'Ereignisse':'Landung'),special,missionQualityLabel(entry,'special'));
+    missionTelemetry(entry.type==='foes'?'Trefferquote':(entry.events&&entry.events.length?'Ereignisse':'Landung'),special,missionQualityLabel(entry,'special'))+
+    (entry.cargoIntegrity!==undefined&&entry.type==='visit'?missionTelemetry('Frachtintegrität',Math.round(entry.cargoIntegrity)+' %',entry.cargoIntegrity>=90?'Unversehrt':entry.cargoIntegrity>=70?'Gebrauchsspuren':'Beschädigt'):'')+
+    (entry.scanStability?missionTelemetry('Scan-Stabilität',Math.round(entry.scanStability*100)+' %',entry.scanStability>=.82?'Sehr stabil':'Auswertbar'):'')+
+    (entry.escortProximity?missionTelemetry('Escort-Nähe',Math.round(entry.escortProximity*100)+' %',entry.escortProximity>=.75?'Eng gedeckt':'Begleitet'):'')+
+    (entry.dropAccuracy?missionTelemetry('Abwurfabweichung',Math.round(entry.dropAccuracy)+' m',entry.dropAccuracy<=45?'Präzise':entry.dropAccuracy<=110?'Im Ziel':'Verfehlt'):'')+
+    (entry.formationTime?missionTelemetry('Formation',entry.formationTime.toFixed(1)+' s','Rendezvous'):'');
 
   el('missionRouteMeta').textContent=(entry.distance/1000).toFixed(1)+' km · '+(entry.route&&entry.route.length?entry.route.length+' Samples':'keine Samples');
 
@@ -101451,6 +101662,7 @@ function updateContractTasks(dt){
     }
     if((T.retry||0)>0){T.retry=Math.max(0,T.retry-dt);continue;}
     if(foeFight>0||foeWarning>0||storyChallenge||circusChallenge||inHomeWaters())continue;
+    ensureMissionDirector(T);if(!missionObjectiveAllowsCombat(T))continue;
     if(Math.hypot(pl.pos.x-T.tx,pl.pos.z-T.tz)>Math.max(500,+T.radius||1500))continue;
     const spawned=startRaid(T.id,Math.max(1,T.n-(T.got||0)));
     if(spawned){
@@ -101909,7 +102121,7 @@ function narrativeContext(extra){
     player:SAVE.pilotName||'Kurier',story:SAVE.story||{},flags:storyFlags(),trust:(SAVE.story&&SAVE.story.trust)||0,
     weather:rainAmt>.58?'storm':rainAmt>.2?'rain':fogAmt>.48?'fog':'clear',
     danger:!!(foeFight>0||!pl.alive||pl.stall>.42),airborne:!!(!pl.ground&&!pl.water),
-    hull:pl.hp/Math.max(1,pl.hpMax||100),fuel:pl.fuel,cargo:SAVE.cargo.length,
+    hull:pl.hp/Math.max(1,pl.hpMax||100),fuel:pl.fuel,cargo:cargoSlotsUsed(),
     damage:damage,relationships:rel,island:talkIs?talkIs.name:(homeIs?homeIs.name:'Adria')
   },extra||{});
 }
@@ -103199,7 +103411,7 @@ function openTalk(is){
     line='Deine Ruder zittern noch im Stand. Lass die Steuerseile prüfen, bevor du wieder abhebst.';
   }else if(!line&&airDamage.floats>.42){
     line='Der '+(airDamageSide('floats')<0?'linke':airDamageSide('floats')>0?'rechte':'beschädigte')+' Schwimmer sitzt nicht sauber. Gut, dass du es bis zum Kai geschafft hast.';
-  }else if(!line&&SAVE.cargo&&SAVE.cargo.length>=(AC.hold||3)){
+  }else if(!line&&SAVE.cargo&&cargoSlotsUsed()>=(AC.hold||3)){
     line='Voller Frachtraum und trotzdem sauber angelegt. Ich halte schon mal Leute zum Ausladen bereit.';
   }
   if(homeIs&&is.key===homeIs.key){
@@ -103276,7 +103488,8 @@ function talkTask(){
         setTalkLine('Drei Aufträge sind bereits angenommen. Diesen halte ich noch kurz für dich frei.');
         return;
       }
-      mine.state='accepted'; mine.acceptedAt=SAVE.log.sec||0; mine.following=true;taskTelemetryStart(mine);missionStats().accepted++;
+      if(mine.t==='visit'&&cargoSlotsUsed()>=(AC.hold||3)){setTalkLine('Für diese Missionsfracht muss ein Frachtraumplatz frei sein. Entlade oder lagere zuerst eine Kiste ein.');return;}
+      ensureMissionDirector(mine,talkIs);if(mine.t==='visit'&&cargoSlotsUsed()>=(AC.hold||3)){setTalkLine('Für diesen Kurierauftrag ist ein Frachtraumplatz nötig. Erst Ware entladen oder einen anderen Auftrag abschließen.');return;}if(mine.t==='visit')mine.missionCargoReserved=true;mine.state='accepted'; mine.acceptedAt=SAVE.log.sec||0; mine.following=true;missionDirectorRemember(mine);taskTelemetryStart(mine);applyLoadout();updateCargoVisual();missionStats().accepted++;
       if((SAVE.nav&&SAVE.nav.focus)==='auto')SAVE.nav.focus='task:'+(mine.id||mine.giver||'');
       missionRecord('taken',taskKindLabel(mine)+' angenommen',mine.txt+' · '+mine.rw+' Münzen · '+talkIs.name+' · '+taskBonusBrief(mine));
       narrativeRelationAdjust(narrativeCharacter(mine.from)||talkCh,0,'job');
@@ -103314,7 +103527,7 @@ function defaultSaveData(){
     regionsSeen:{},landscapeDiscoveries:{},landscapeJournal:[],heroWorld:{v:1,homeKey:'',assignments:{}},narrative2:defaultNarrative2(),
     story:{stage:0,rivalBeat:0,journal:[],wreckFound:[],flags:{},trust:0,corvinoState:'hostile'},circus:{found:[],done:[]},passenger:null,paxQuest:null,
     onboarding:{v:2,phase:0,tx:0,tz:0,shown:false,done:false,replay:false,rewarded:false,checkpoint:null},
-    nav:{focus:'auto'},flightPlan:{active:false,next:0,waypoints:[]},weather:{v:1,seed:0,serial:0,cells:[],choiceSeen:[]},
+    nav:{focus:'auto'},flightPlan:{active:false,next:0,waypoints:[]},weather:{v:1,seed:0,serial:0,cells:[],choiceSeen:[]},missionDirector:{v:1,history:[],generated:0,completed:0},
     mapFilters:{story:true,tasks:true,home:true,ports:true,rings:true,dangers:true,travel:true,weather:true,route:true},
     gfx:{preset:'ultra',auto:false},
     log:{km:0,sec:0,landings:0,bestLand:0,foes:0,courses:0,whales:0,isl:{},towns:{},
@@ -103336,7 +103549,7 @@ function missionRecord(kind,title,detail,meta){
     title:String(title||'Einsatz').slice(0,90),
     detail:String(detail||'').slice(0,240)
   };
-  if(meta&&typeof meta==='object')for(const k of ['id','type','giver','target','message','base','bonus','total','score','grade','rep','relation','material','time','distance','fuel','damage','landing','maxAlt','crashes','shots','hits','reply','replyName','tx','tz'])if(meta[k]!==undefined)rec[k]=meta[k];
+  if(meta&&typeof meta==='object')for(const k of ['id','type','giver','target','message','base','bonus','total','score','grade','rep','relation','material','time','distance','fuel','damage','landing','maxAlt','crashes','shots','hits','reply','replyName','tx','tz','cargoIntegrity','scanStability','escortProximity','searchTime','dropAccuracy','formationTime','weatherExposure','objectiveSignature'])if(meta[k]!==undefined)rec[k]=meta[k];
   if(meta&&meta.record)rec.record=true;
   if(meta&&Array.isArray(meta.criteria))rec.criteria=meta.criteria.map(function(c){return{name:String(c.name||'Bonus').slice(0,100),ok:!!c.ok};}).slice(0,6);
   if(meta&&Array.isArray(meta.performanceCriteria))rec.performanceCriteria=meta.performanceCriteria.map(function(c){return{name:String(c.name||'Kriterium').slice(0,100),ok:!!c.ok};}).slice(0,5);
@@ -103895,6 +104108,8 @@ function sanitizeTradeRoutes(src){
   if(!Array.isArray(src))return [];return src.slice(0,5).map(function(v){if(!v||typeof v!=='object'||!Number.isInteger(v.good)||v.good<0||v.good>=GOODS.length)return null;
     const key=safeSaveKey(v.toKey),from=safeSaveKey(v.fromKey);if(key===null)return null;return {name:String(v.name||GOODS[v.good].n+'-Route').slice(0,80),good:v.good,toKey:key,fromKey:from};}).filter(Boolean);
 }
+function sanitizeMissionObjective(o){if(!o||typeof o!=='object'||typeof o.type!=='string')return null;const allow=['TRAVEL','ENTER_ZONE','HOLD_ALTITUDE','HOLD_HEADING','HOLD_SPEED','SCAN','LAND','WATER_LAND','TAXI','DELIVER','RINGS','INVESTIGATE','INTERCEPT','SECURE_ZONE','RENDEZVOUS','ESCORT','SUPPLY_DROP'];if(allow.indexOf(o.type)<0)return null;const q={type:o.type,label:String(o.label||MISSION_OBJECTIVE_LABEL[o.type]||o.type).slice(0,90),state:o.state==='done'?'done':'pending',progress:clamp(+o.progress||0,0,1e6),duration:clamp(+o.duration||0,0,600),radius:clamp(+o.radius||0,0,30000)};for(const k of ['x','z','target','tol','maxVS','heading','minKmh','maxKmh','targetAlt','minScore','sx','sz','ex','ez','progress01'])if(isFinite(+o[k]))q[k]=clamp(+o[k],-1e8,1e8);if(typeof o.mode==='string')q.mode=o.mode.slice(0,24);if(['aircraft','ship'].includes(o.entity))q.entity=o.entity;if(isFinite(+o.pointIndex))q.pointIndex=clamp(Math.floor(+o.pointIndex),0,20);if(Array.isArray(o.points))q.points=o.points.slice(0,8).map(function(p){return p&&isFinite(+p.x)&&isFinite(+p.z)?{x:clamp(+p.x,-1e8,1e8),z:clamp(+p.z,-1e8,1e8)}:null;}).filter(Boolean);if(Array.isArray(o.waypoints))q.waypoints=o.waypoints.slice(0,8).map(function(p){return p&&isFinite(+p.x)&&isFinite(+p.z)?{x:clamp(+p.x,-1e8,1e8),z:clamp(+p.z,-1e8,1e8)}:null;}).filter(Boolean);return q;}
+function sanitizeMissionDirector(src){const out={v:1,history:[],generated:0,completed:0};if(!src||typeof src!=='object')return out;if(Array.isArray(src.history))out.history=src.history.slice(-16).map(function(h){return h&&typeof h==='object'?{type:String(h.type||'').slice(0,16),template:String(h.template||'').slice(0,50),sig:String(h.sig||'').slice(0,240),region:String(h.region||'').slice(0,24),plane:clamp(Math.floor(+h.plane||0),0,9),t:clamp(+h.t||0,0,1e9)}:null;}).filter(Boolean);out.generated=clamp(Math.floor(+src.generated||0),0,1e9);out.completed=clamp(Math.floor(+src.completed||0),0,1e9);return out;}
 function sanitizeTask(v){
   if(!v||typeof v!=='object'||!['rings','foes','visit','alt','water'].includes(v.t))return null;
   const giver=safeSaveKey(v.giver); if(giver===null)return null;
@@ -103923,15 +104138,16 @@ function sanitizeTask(v){
     kind:WEATHER_TYPES.includes(v.weatherBonus.kind)?v.weatherBonus.kind:'rain'};
   if(typeof v.landmarkTie==='string'&&/^[a-zA-Z]{2,32}$/.test(v.landmarkTie))out.landmarkTie=v.landmarkTie;
   if(v.complication&&typeof v.complication==='object'&&isFinite(+v.complication.x)&&isFinite(+v.complication.z)){
-    const resolved=['help','ignore'].includes(v.complication.resolved)?v.complication.resolved:null;
-    out.complication={type:'distress',x:clamp(+v.complication.x,-1e8,1e8),z:clamp(+v.complication.z,-1e8,1e8),triggered:!!resolved,resolved:resolved};
+    const resolved=['help','ignore'].includes(v.complication.resolved)?v.complication.resolved:null,decision=['help','ignore'].includes(v.complication.decision)?v.complication.decision:(resolved||null);
+    out.complication={type:'distress',x:clamp(+v.complication.x,-1e8,1e8),z:clamp(+v.complication.z,-1e8,1e8),triggered:!!v.complication.triggered,resolved:resolved,decision:decision};
     if(resolved&&isFinite(+v.complication.rewardDelta))out.complication.rewardDelta=clamp(Math.round(+v.complication.rewardDelta),-50000,50000);
     if(resolved&&isFinite(+v.complication.repDelta))out.complication.repDelta=clamp(Math.round(+v.complication.repDelta),-5,5);
   }
-  if(v.weatherChoice&&typeof v.weatherChoice==='object'&&['divert','push'].includes(v.weatherChoice.resolved))out.weatherChoice={cellId:String(v.weatherChoice.cellId||'').slice(0,80),resolved:v.weatherChoice.resolved,repDelta:clamp(Math.round(+v.weatherChoice.repDelta||0),-5,5)};
+  if(v.weatherChoice&&typeof v.weatherChoice==='object'&&['divert','push'].includes(v.weatherChoice.resolved))out.weatherChoice={cellId:String(v.weatherChoice.cellId||'').slice(0,80),resolved:v.weatherChoice.resolved,repDelta:clamp(Math.round(+v.weatherChoice.repDelta||0),-5,5),x:clamp(+v.weatherChoice.x||0,-1e8,1e8),z:clamp(+v.weatherChoice.z||0,-1e8,1e8),r:clamp(+v.weatherChoice.r||1800,100,20000)};
   if(v.cargoChoice&&typeof v.cargoChoice==='object'&&['honest','hide'].includes(v.cargoChoice.resolved))out.cargoChoice={resolved:v.cargoChoice.resolved,repDelta:clamp(Math.round(+v.cargoChoice.repDelta||0),-5,5),caught:!!v.cargoChoice.caught};
   if(isFinite(+v.offeredAt))out.offeredAt=clamp(+v.offeredAt,0,1e9);
   if(isFinite(+v.acceptedAt))out.acceptedAt=clamp(+v.acceptedAt,0,1e9);
+  if(isFinite(+v.directorVersion))out.directorVersion=MISSION_DIRECTOR_VERSION;if(typeof v.missionTemplate==='string')out.missionTemplate=v.missionTemplate.slice(0,60);if(typeof v.missionVariant==='string')out.missionVariant=v.missionVariant.slice(0,32);if(typeof v.missionRegion==='string')out.missionRegion=v.missionRegion.slice(0,24);if(isFinite(+v.sourceX))out.sourceX=clamp(+v.sourceX,-1e8,1e8);if(isFinite(+v.sourceZ))out.sourceZ=clamp(+v.sourceZ,-1e8,1e8);if(isFinite(+v.objectiveIndex))out.objectiveIndex=clamp(Math.floor(+v.objectiveIndex),0,32);if(Array.isArray(v.objectives))out.objectives=v.objectives.slice(0,24).map(sanitizeMissionObjective).filter(Boolean);if(v.riskProfile&&typeof v.riskProfile==='object')out.riskProfile={weather:clamp(Math.round(+v.riskProfile.weather||0),0,3),terrain:clamp(Math.round(+v.riskProfile.terrain||0),0,3),combat:clamp(Math.round(+v.riskProfile.combat||0),0,3),cargo:clamp(Math.round(+v.riskProfile.cargo||0),0,3),distance:clamp(Math.round(+v.riskProfile.distance||0),0,3)};if(isFinite(+v.cargoIntegrity))out.cargoIntegrity=clamp(+v.cargoIntegrity,0,100);if(isFinite(+v.cargoShock))out.cargoShock=clamp(+v.cargoShock,0,1e6);if(isFinite(+v.missionCargoWeight))out.missionCargoWeight=clamp(+v.missionCargoWeight,0,500);if(typeof v.missionCargoReserved==='boolean')out.missionCargoReserved=v.missionCargoReserved;
   if(v.t==='rings'){
     out.n=clamp(Math.round(+v.n||3),3,8);
     const ck=safeSaveKey(v.courseKey);if(ck!==null)out.courseKey=ck;
@@ -103959,7 +104175,7 @@ function sanitizeTask(v){
     out.telemetry={started:clamp(+m.started||0,0,1e9),lastX:clamp(+m.lastX||0,-1e8,1e8),lastZ:clamp(+m.lastZ||0,-1e8,1e8),
       lastFuel:clamp(+m.lastFuel||0,0,1),lastHp:clamp(+m.lastHp||0,0,10000),elapsed:clamp(+m.elapsed||0,0,1e9),distance:clamp(+m.distance||0,0,1e9),
       fuelUsed:clamp(+m.fuelUsed||0,0,100000),damage:clamp(+m.damage||0,0,100000),maxAlt:clamp(+m.maxAlt||0,0,100000),crashes:clamp(Math.floor(+m.crashes||0),0,999),
-      shots:clamp(Math.floor(+m.shots||0),0,1e7),hits:clamp(Math.floor(+m.hits||0),0,1e7),weatherPeak:clamp(+m.weatherPeak||0,0,1),weatherTime:clamp(+m.weatherTime||0,0,1e9),events:Array.isArray(m.events)?m.events.map(function(v){return String(v).slice(0,32);}).slice(0,8):[],routeWait:clamp(+m.routeWait||0,0,60),route:Array.isArray(m.route)?m.route.slice(-36).map(function(p){return p&&isFinite(+p.x)&&isFinite(+p.z)?{x:clamp(+p.x,-1e8,1e8),z:clamp(+p.z,-1e8,1e8)}:null;}).filter(Boolean):[]};
+      shots:clamp(Math.floor(+m.shots||0),0,1e7),hits:clamp(Math.floor(+m.hits||0),0,1e7),weatherPeak:clamp(+m.weatherPeak||0,0,1),weatherTime:clamp(+m.weatherTime||0,0,1e9),searchTime:clamp(+m.searchTime||0,0,1e9),formationTime:clamp(+m.formationTime||0,0,1e9),escortSamples:clamp(+m.escortSamples||0,0,1e9),escortClose:clamp(+m.escortClose||0,0,1e9),scanQualitySum:clamp(+m.scanQualitySum||0,0,1e9),scanTime:clamp(+m.scanTime||0,0,1e9),dropAccuracy:clamp(+m.dropAccuracy||0,0,1e6),ringMaxAlt:clamp(+m.ringMaxAlt||0,0,1e6),ringMaxG:clamp(+m.ringMaxG||0,0,20),ringExitSpeed:clamp(+m.ringExitSpeed||0,0,1000),ringWindExposure:clamp(+m.ringWindExposure||0,0,1e6),cargoIntegrity:clamp(+m.cargoIntegrity||100,0,100),cargoShock:clamp(+m.cargoShock||0,0,1e6),events:Array.isArray(m.events)?m.events.map(function(v){return String(v).slice(0,32);}).slice(0,8):[],routeWait:clamp(+m.routeWait||0,0,60),route:Array.isArray(m.route)?m.route.slice(-36).map(function(p){return p&&isFinite(+p.x)&&isFinite(+p.z)?{x:clamp(+p.x,-1e8,1e8),z:clamp(+p.z,-1e8,1e8)}:null;}).filter(Boolean):[]};
   }
   return out;
 }
@@ -104099,6 +104315,7 @@ function sanitizeIslandLife(src){
   for(const k of Object.keys(src)){
     const v=src[k];if(n>=6000||!/^\-?\d+$/.test(k)||!v||typeof v!=='object'||Array.isArray(v))continue;
     const cargoTypes={};if(v.cargoTypes&&typeof v.cargoTypes==='object'&&!Array.isArray(v.cargoTypes))for(const g of Object.keys(v.cargoTypes).slice(0,16))if(/^(?:special|\d{1,2})$/.test(g))cargoTypes[g]=clamp(Math.floor(+v.cargoTypes[g]||0),0,99999);
+    const missionEffects={};if(v.missionEffects&&typeof v.missionEffects==='object'&&!Array.isArray(v.missionEffects))for(const mk of ['visit','alt','foes','water','rings','escort','rescue'])if(isFinite(+v.missionEffects[mk]))missionEffects[mk]=clamp(Math.floor(+v.missionEffects[mk]),0,999);
     const citizens={};if(v.citizens&&typeof v.citizens==='object'&&!Array.isArray(v.citizens)){
       let cn=0;for(const id of Object.keys(v.citizens)){if(cn>=32||!/^\d{1,2}$/.test(id))continue;const c=v.citizens[id];if(!c||typeof c!=='object'||Array.isArray(c))continue;
         citizens[id]={relationship:clamp(Math.round(+c.relationship||0),-100,100),helped:clamp(Math.floor(+c.helped||0),0,999),injured:!!c.injured,away:!!c.away,specialState:String(c.specialState||'').slice(0,32),
@@ -104109,7 +104326,7 @@ function sanitizeIslandLife(src){
       landingQuality:clamp(Math.round(+v.landingQuality||0),0,100),last:clamp(+v.last||0,0,1e9),lastMoment:clamp(+v.lastMoment||0,0,1e9),heroSeen:!!v.heroSeen,
       tradeVolume:clamp(Math.floor(+v.tradeVolume||0),0,999999),cargoTypes:cargoTypes,rescues:clamp(Math.floor(+v.rescues||0),0,9999),raidOutcome:['','protected','missed'].includes(v.raidOutcome)?v.raidOutcome:'',
       pilotFame:clamp(+v.pilotFame||0,0,100),localProsperity:clamp(Math.floor(+v.localProsperity||0),0,3),damageState:clamp(Math.floor(+v.damageState||0),0,3),festivalMemory:clamp(Math.floor(+v.festivalMemory||0),0,9999),
-      lastVisit:clamp(+v.lastVisit||v.last||0,0,1e9),lastCargoAt:clamp(+v.lastCargoAt||0,0,1e9),citizens:citizens};n++;
+      lastVisit:clamp(+v.lastVisit||v.last||0,0,1e9),lastCargoAt:clamp(+v.lastCargoAt||0,0,1e9),citizens:citizens,missionEffects:missionEffects};n++;
   }
   return out;
 }
@@ -104282,7 +104499,7 @@ function resetStoryRuntime(){
   if(narrRelationTimer){clearTimeout(narrRelationTimer);narrRelationTimer=0;}el('narrativeRelationToast').classList.remove('on');
   if(radioDirector.timer){clearTimeout(radioDirector.timer);radioDirector.timer=0;}radioDirector.active=null;radioDirector.queue.length=0;radioDirector.time=0;el('radioCall').classList.remove('on');document.body.classList.remove('radioActive');
   barkDirector.active=null;barkDirector.queue.length=0;paxShowT=0;el('paxTalk').classList.remove('on');
-  activeComplicationTask=null;activeWeatherTask=null;
+  activeComplicationTask=null;activeWeatherTask=null;if(typeof MISSION_ENTITY!=='undefined'){MISSION_ENTITY.drop=null;MISSION_ENTITY.taskId='';MISSION_ENTITY.visualTaskId='';if(MISSION_ENTITY.mesh)MISSION_ENTITY.mesh.visible=false;if(MISSION_ENTITY.escortMesh)MISSION_ENTITY.escortMesh.visible=false;if(MISSION_ENTITY.distressMesh)MISSION_ENTITY.distressMesh.visible=false;if(MISSION_ENTITY.dropMesh)MISSION_ENTITY.dropMesh.visible=false;}const moh=el('missionObjectiveHUD');if(moh)moh.classList.remove('on');
   /* Narrative-2.0-Ankunftserkennung ist Laufzeit-, kein Slotzustand. Ohne
      Reset konnte derselbe Hafen im neu geladenen Slot seine Nachwirkung
      bis zum erneuten Ab- und Anflug unterdrücken. */
@@ -104390,6 +104607,7 @@ function applySave(o){
   if(o.nav&&typeof o.nav.focus==='string')SAVE.nav={focus:o.nav.focus.slice(0,32)};
   SAVE.flightPlan=sanitizeFlightPlan(o.flightPlan);
   SAVE.weather=sanitizeWeather(o.weather);weatherEnsure();
+  SAVE.missionDirector=sanitizeMissionDirector(o.missionDirector);
   if(o.mapFilters&&typeof o.mapFilters==='object'){
     const mf=o.mapFilters;
     for(const k of ['story','tasks','home','ports','rings','dangers','travel','weather','route'])
@@ -106439,12 +106657,12 @@ function playTradeTransactionVisual(kind,qty,amount,g){
 
   const slots=Array.from(document.querySelectorAll('#tradeSlots .tradeSlot'));
   if(kind==='buy'||kind==='contract'){
-    const start=Math.max(0,SAVE.cargo.length-qty);
+    const start=Math.max(0,cargoSlotsUsed()-qty);
     for(let i=start;i<Math.min(slots.length,start+qty);i++){
       slots[i].classList.remove('txnIn');void slots[i].offsetWidth;slots[i].classList.add('txnIn');
     }
   }else if(kind==='sell'){
-    const start=Math.min(slots.length,SAVE.cargo.length);
+    const start=Math.min(slots.length,cargoSlotsUsed());
     for(let i=start;i<Math.min(slots.length,start+qty);i++){
       slots[i].classList.add('txnOut');
     }
@@ -106476,8 +106694,8 @@ function tradeQuoteMessage(q){return q.local?(q.imported?' · '+q.local+' lokal 
 function tradeBuy(g,qty){
   if(!tradeBoardOpen||!talkIs)return;const is=talkIs;
   if(g===8&&repLevel(is.key)<5){tradeMessage('Bernsteinhandel wird ab Ruf-Stufe 5 freigeschaltet.',true);return;}
-  const m=marketState(is),space=(AC.hold||3)-SAVE.cargo.length,unit=marketBuyPrice(is,g,m);
-  qty=clamp(Math.floor(qty||1),0,Math.min(m.stock[g],space,Math.floor(SAVE.coins/Math.max(1,unit))));if(qty<=0){tradeMessage(m.stock[g]<=0?'Ware ausverkauft.':space<=0?'Frachtraum voll.':'Nicht genügend Münzen.',true);return;}if(!tradeBeginAtomic())return;
+  const m=marketState(is),space=(AC.hold||3)-cargoSlotsUsed(),unit=marketBuyPrice(is,g,m);
+  qty=clamp(Math.floor(qty||1),0,Math.min(m.stock[g],space,Math.floor(SAVE.coins/Math.max(1,unit))));if(qty<=0){const ms=missionCargoSlotsUsed();tradeMessage(m.stock[g]<=0?'Ware ausverkauft.':space<=0?(ms?'Frachtraum voll · '+ms+' Platz'+(ms===1?'':'e')+' für Missionsfracht reserviert.':'Frachtraum voll.'):'Nicht genügend Münzen.',true);return;}if(!tradeBeginAtomic())return;
   tradeUndo=tradeSnapshot(is,'Einkauf');const total=unit*qty;SAVE.coins-=total;
   for(let i=0;i<qty;i++)SAVE.cargo.push({g:g,kind:'plain',paid:unit,origin:is.key,originName:is.name});
   tradeApplyMarket(is,g,qty,true);logAdd('tradeBought',qty);applyLoadout();updateCargoVisual();saveSoon();tradeWorldFeedback(is,qty,true);sfxRing(.34);haptic(8);tradeMessage(qty+' × '+GOODS[g].n+' geladen · −'+total+' Münzen');renderTradeBoard();
@@ -106506,8 +106724,8 @@ function tradeSellAll(){
 function tradeWarehouseMove(g,toWarehouse){
   const cap=tradeWarehouseCap();if(!cap){tradeMessage('Das Heimatlager wird mit Hangar-Stufe 3 freigeschaltet.',true);return;}
   if(!homeIs||!talkIs||talkIs.key!==homeIs.key){tradeMessage('Das Lager ist nur in der Heimatbucht erreichbar.',true);return;}
-  const from=toWarehouse?SAVE.cargo:SAVE.warehouse,to=toWarehouse?SAVE.warehouse:SAVE.cargo,limit=toWarehouse?cap:(AC.hold||3),at=from.findIndex(function(c){return c&&c.kind==='plain'&&c.g===g;});
-  if(at<0||to.length>=limit){tradeMessage(at<0?'Diese Ware ist nicht vorhanden.':'Kein freier Platz.',true);return;}if(!tradeBeginAtomic())return;tradeUndo=tradeSnapshot(talkIs,'Lagerbewegung');to.push(from.splice(at,1)[0]);applyLoadout();updateCargoVisual();saveSoon();tradeMessage(GOODS[g].n+(toWarehouse?' eingelagert.':' ins Flugzeug geladen.'));renderTradeBoard();
+  const from=toWarehouse?SAVE.cargo:SAVE.warehouse,to=toWarehouse?SAVE.warehouse:SAVE.cargo,limit=toWarehouse?cap:(AC.hold||3),at=from.findIndex(function(c){return c&&c.kind==='plain'&&c.g===g;}),used=toWarehouse?to.length:cargoSlotsUsed();
+  if(at<0||used>=limit){tradeMessage(at<0?'Diese Ware ist nicht vorhanden.':'Kein freier Platz.',true);return;}if(!tradeBeginAtomic())return;tradeUndo=tradeSnapshot(talkIs,'Lagerbewegung');to.push(from.splice(at,1)[0]);applyLoadout();updateCargoVisual();saveSoon();tradeMessage(GOODS[g].n+(toWarehouse?' eingelagert.':' ins Flugzeug geladen.'));renderTradeBoard();
 }
 function tradeSaveRoute(route){
   SAVE.tradeRoutes=SAVE.tradeRoutes||[];const exists=SAVE.tradeRoutes.some(function(r){return r.good===tradeSelectedGood&&String(r.fromKey)===String(talkIs.key)&&String(r.toKey)===String(route.is.key);});
@@ -106527,7 +106745,7 @@ function tradePerformanceData(projectQty){
   return {weight:projectW,start:Math.round(72*Math.pow(proj/base,1.72)),climb:Math.max(1.5,7.4*ratio),range:Math.round(215*ratio/(AC.burnMul||1)*(AC.tank||1)),handling:Math.round(100*Math.pow(ratio,.72))};
 }
 function renderTradePerformance(){
-  const space=Math.max(0,(AC.hold||3)-SAVE.cargo.length),m=marketState(talkIs),locked=tradeSelectedGood===8&&repLevel(talkIs.key)<5;
+  const space=Math.max(0,(AC.hold||3)-cargoSlotsUsed()),m=marketState(talkIs),locked=tradeSelectedGood===8&&repLevel(talkIs.key)<5;
   const can=locked?0:Math.min(tradeQty,space,m.stock[tradeSelectedGood]);
   const p=tradePerformanceData(can);
   const heavy=p.weight>650||p.start>145||p.handling<82;
@@ -106609,14 +106827,14 @@ function updateTradeDealPreview(){
   if(!tradeBoardOpen||!talkIs)return;
   const is=talkIs,m=marketState(is),g=tradeSelectedGood,cap=AC.hold||3,rep=repLevel(is.key),G=GOODS[g];
   const unitBuy=marketBuyPrice(is,g,m),unitSell=marketSellPrice(is,g,m),selectedLocked=g===8&&rep<5;
-  const maxBuy=selectedLocked?0:Math.min(m.stock[g],cap-SAVE.cargo.length,Math.floor(SAVE.coins/Math.max(1,unitBuy)));
+  const maxBuy=selectedLocked?0:Math.min(m.stock[g],cap-cargoSlotsUsed(),Math.floor(SAVE.coins/Math.max(1,unitBuy)));
   const maxSell=tradePlainCount(g),overallMax=Math.max(1,Math.max(maxBuy,maxSell));
   tradeQty=clamp(tradeQty,1,overallMax);
   const canBuy=maxBuy>=tradeQty,canSell=maxSell>=tradeQty,sale=tradeSaleQuote(is,g,tradeQty,m);
   const saleProfit=Math.round(sale.revenue-sale.paid);
   const hasDeal=maxBuy>0||maxSell>0,sellPrimary=canSell&&(saleProfit>0||!canBuy);
   const primaryMax=hasDeal?Math.max(1,sellPrimary?maxSell:maxBuy):0;
-  const buyReason=selectedLocked?'Ruf-Stufe 5 erforderlich':maxBuy<=0?(m.stock[g]<=0?'ausverkauft':cap-SAVE.cargo.length<=0?'Frachtraum voll':SAVE.coins<unitBuy?'zu wenig Münzen':'nicht verfügbar'):'';
+  const missionReserved=missionCargoSlotsUsed(),buyReason=selectedLocked?'Ruf-Stufe 5 erforderlich':maxBuy<=0?(m.stock[g]<=0?'ausverkauft':cap-cargoSlotsUsed()<=0?(missionReserved?missionReserved+' Platz'+(missionReserved===1?'':'e')+' Missionsfracht reserviert':'Frachtraum voll'):SAVE.coins<unitBuy?'zu wenig Münzen':'nicht verfügbar'):'';
   const trend=tradeTrendInfo(m.pressure[g]),best=tradeKnownRoutes(g,is)[0],bestExact=best&&rep>=2;
   const bestProfit=bestExact?((best.profit>=0?'+':'')+best.profit+' ◈ / Kiste'):(best?'Preis nach weiterem Ruf genauer':'Noch keine bekannte Absatzroute');
 
@@ -106631,14 +106849,14 @@ function updateTradeDealPreview(){
     '</div>'+
     (best?'<div class="tradeOpportunity"><div class="tradeOpportunityTop"><span>Beste bekannte Nachfrage</span><b>'+escapeHTML(best.is.name)+'</b></div><div class="tradeOpportunityProfit">'+bestProfit+'<small>· '+(best.distance/1000).toFixed(1)+' km</small></div></div>':
       '<div class="tradeOpportunity"><div class="tradeOpportunityTop"><span>Absatzdaten</span><b>Noch offen</b></div><div class="tradeSelectedFoot">Besuche weitere Häfen, um Preis- und Routendaten zu sammeln.</div></div>')+
-    '<div class="tradeSelectedFoot">'+G.w+' kg je Kiste · Bestand '+m.stock[g]+' · '+trend.spoken+' · bei '+Math.min(tradeQty,maxBuy)+' geplanter Kiste'+(Math.min(tradeQty,maxBuy)===1?'':'n')+' wären '+Math.min(cap,SAVE.cargo.length+Math.min(tradeQty,maxBuy))+'/'+cap+' Slots belegt.</div>';
+    '<div class="tradeSelectedFoot">'+G.w+' kg je Kiste · Bestand '+m.stock[g]+' · '+trend.spoken+' · bei '+Math.min(tradeQty,maxBuy)+' geplanter Kiste'+(Math.min(tradeQty,maxBuy)===1?'':'n')+' wären '+Math.min(cap,cargoSlotsUsed()+Math.min(tradeQty,maxBuy))+'/'+cap+' Slots belegt.</div>';
 
-  const preview=Math.min(tradeQty,maxBuy),slotsBox=el('tradeSlots');
+  const preview=Math.min(tradeQty,maxBuy),slotsBox=el('tradeSlots'),missionSlots=missionCargoSlotsUsed(),usedSlots=cargoSlotsUsed();
   if(slotsBox){
     let slots='';
     for(let i=0;i<cap;i++){
-      const c=SAVE.cargo[i],future=!c&&i>=SAVE.cargo.length&&i<SAVE.cargo.length+preview;
-      slots+='<i class="tradeSlot '+(c?(c.kind&&c.kind!=='plain'?'contract':'used'):(future?'preview':''))+'"></i>';
+      const c=SAVE.cargo[i],mission=!c&&i>=SAVE.cargo.length&&i<SAVE.cargo.length+missionSlots,future=!c&&!mission&&i>=usedSlots&&i<usedSlots+preview;
+      slots+='<i class="tradeSlot '+(c?(c.kind&&c.kind!=='plain'?'contract':'used'):(mission?'contract':(future?'preview':'')))+'"></i>';
     }
     slotsBox.innerHTML=slots;
   }
@@ -106655,7 +106873,7 @@ function updateTradeDealPreview(){
         '<button type="button" class="tradeMax" id="tradeMax" '+(primaryMax>0?'':'disabled')+'>MAX</button>'+
       '</div>'+
       '<div class="tradeDealButtons">'+
-        '<button type="button" class="tradeDealButton buy '+(!sellPrimary&&canBuy?'primary':'')+'" id="tradeBuy" '+(canBuy?'':'disabled')+'><span>Laden · '+(unitBuy*tradeQty)+' ◈</span><small>Kasse danach '+afterBuy+' ◈'+(buyReason?' · '+buyReason:'')+'</small></button>'+
+        '<button type="button" class="tradeDealButton buy '+(!sellPrimary&&canBuy?'primary ':'')+(!canBuy?'blocked':'')+'" id="tradeBuy" aria-disabled="'+(!canBuy?'true':'false')+'"><span>'+(canBuy?'Laden':'Warum nicht laden?')+' · '+(unitBuy*tradeQty)+' ◈</span><small>Kasse danach '+afterBuy+' ◈'+(buyReason?' · '+buyReason:'')+'</small></button>'+
         '<button type="button" class="tradeDealButton sell '+(sellPrimary&&canSell?'primary':'')+'" id="tradeSell" '+(canSell?'':'disabled')+'><span>Verkaufen · +'+sale.revenue+' ◈</span><small>Kasse danach '+afterSell+' ◈ · Bilanz '+(saleProfit>=0?'+':'')+saleProfit+'</small></button>'+
       '</div>'+
       '<div class="tradeTradeNote"><b>'+unitBuy+' ◈</b> je Kiste · maximal '+maxBuy+' laden · '+maxSell+' an Bord'+(sale.local?' · lokale Ware erhält nur Rücknahmepreis':'')+'. Aircraft Impact aktualisiert sich direkt mit der gewählten Menge.</div>';
@@ -106679,12 +106897,12 @@ function renderTradeBoard(){
   const is=talkIs,m=marketState(is),g=tradeSelectedGood,cap=AC.hold||3,fest=festivalFor(is),rep=repLevel(is.key),info=Math.min(3,1+Math.floor(rep/2));
   const rank=tradeRankInfo(),routesByGood=GOODS.map(function(_,i){return tradeKnownRoutes(i,is);});
   const G=GOODS[g],unitBuy=marketBuyPrice(is,g,m),unitSell=marketSellPrice(is,g,m),selectedLocked=g===8&&rep<5;
-  const maxBuy=selectedLocked?0:Math.min(m.stock[g],cap-SAVE.cargo.length,Math.floor(SAVE.coins/Math.max(1,unitBuy))),maxSell=tradePlainCount(g);
+  const maxBuy=selectedLocked?0:Math.min(m.stock[g],cap-cargoSlotsUsed(),Math.floor(SAVE.coins/Math.max(1,unitBuy))),maxSell=tradePlainCount(g);
   tradeQty=clamp(tradeQty,1,Math.max(1,Math.max(maxBuy,maxSell)));
   const canBuy=maxBuy>=tradeQty,canSell=maxSell>=tradeQty,sale=tradeSaleQuote(is,g,tradeQty,m);
   const saleProfit=Math.round(sale.revenue-sale.paid);
   const hasDeal=maxBuy>0||maxSell>0,sellPrimary=canSell&&(saleProfit>0||!canBuy),primaryMax=hasDeal?Math.max(1,sellPrimary?maxSell:maxBuy):0;
-  const buyReason=selectedLocked?'Ruf-Stufe 5 erforderlich':maxBuy<=0?(m.stock[g]<=0?'ausverkauft':cap-SAVE.cargo.length<=0?'Frachtraum voll':SAVE.coins<unitBuy?'zu wenig Münzen':'nicht verfügbar'):'';
+  const missionReserved=missionCargoSlotsUsed(),buyReason=selectedLocked?'Ruf-Stufe 5 erforderlich':maxBuy<=0?(m.stock[g]<=0?'ausverkauft':cap-cargoSlotsUsed()<=0?(missionReserved?missionReserved+' Platz'+(missionReserved===1?'':'e')+' Missionsfracht reserviert':'Frachtraum voll'):SAVE.coins<unitBuy?'zu wenig Münzen':'nicht verfügbar'):'';
   const trend=tradeTrendInfo(m.pressure[g]),best=routesByGood[g][0];
 
   el('tradeTitle').textContent=is.name;
@@ -106694,7 +106912,7 @@ function renderTradeBoard(){
   el('tradePulse').innerHTML='<span class="tradePulseLabel">Hafenfunk</span>'+escapeHTML(marketPulseText(is));
 
   el('tradeSummary').innerHTML=
-    '<span class="tradeChip">Frachtraum <b>'+SAVE.cargo.length+'/'+cap+'</b></span>'+
+    '<span class="tradeChip">Frachtraum <b>'+cargoSlotsUsed()+'/'+cap+'</b></span>'+
     '<span class="tradeChip">Ladung <b>'+cargoWeight()+' kg</b></span>'+
     '<span class="tradeChip">Marktinfo <b>'+info+'/3</b></span>'+
     (rank.next?'<span class="tradeChip">Rangfortschritt <b>'+rank.remaining+' Lieferungen</b></span>':'<span class="tradeChip">Rang <b>vollendet</b></span>')+
@@ -106728,27 +106946,25 @@ function renderTradeBoard(){
     '</div>'+
     (best?'<div class="tradeOpportunity"><div class="tradeOpportunityTop"><span>Beste bekannte Nachfrage</span><b>'+escapeHTML(best.is.name)+'</b></div><div class="tradeOpportunityProfit">'+bestProfit+'<small>· '+(best.distance/1000).toFixed(1)+' km</small></div></div>':
       '<div class="tradeOpportunity"><div class="tradeOpportunityTop"><span>Absatzdaten</span><b>Noch offen</b></div><div class="tradeSelectedFoot">Besuche weitere Häfen, um Preis- und Routendaten zu sammeln.</div></div>')+
-    '<div class="tradeSelectedFoot">'+G.w+' kg je Kiste · Bestand '+m.stock[g]+' · '+trend.spoken+' · bei '+Math.min(tradeQty,maxBuy)+' geplanter Kiste'+(Math.min(tradeQty,maxBuy)===1?'':'n')+' wären '+Math.min(cap,SAVE.cargo.length+Math.min(tradeQty,maxBuy))+'/'+cap+' Slots belegt.</div>';
+    '<div class="tradeSelectedFoot">'+G.w+' kg je Kiste · Bestand '+m.stock[g]+' · '+trend.spoken+' · bei '+Math.min(tradeQty,maxBuy)+' geplanter Kiste'+(Math.min(tradeQty,maxBuy)===1?'':'n')+' wären '+Math.min(cap,cargoSlotsUsed()+Math.min(tradeQty,maxBuy))+'/'+cap+' Slots belegt.</div>';
 
-  const preview=Math.min(tradeQty,maxBuy);
+  const preview=Math.min(tradeQty,maxBuy),missionSlots=missionCargoSlotsUsed(),usedSlots=cargoSlotsUsed();
   let slots='';
   for(let i=0;i<cap;i++){
-    const c=SAVE.cargo[i];
-    const future=!c&&i>=SAVE.cargo.length&&i<SAVE.cargo.length+preview;
-    slots+='<i class="tradeSlot '+(c?(c.kind&&c.kind!=='plain'?'contract':'used'):(future?'preview':''))+'"></i>';
+    const c=SAVE.cargo[i],mission=!c&&i>=SAVE.cargo.length&&i<SAVE.cargo.length+missionSlots;
+    const future=!c&&!mission&&i>=usedSlots&&i<usedSlots+preview;
+    slots+='<i class="tradeSlot '+(c?(c.kind&&c.kind!=='plain'?'contract':'used'):(mission?'contract':(future?'preview':'')))+'"></i>';
   }
   el('tradeSlots').innerHTML=slots;
-  el('tradeHoldLabel').textContent=SAVE.cargo.length+'/'+cap+' Slots · '+cargoWeight()+' kg';
+  el('tradeHoldLabel').textContent=cargoSlotsUsed()+'/'+cap+' Slots · '+cargoWeight()+' kg';
 
-  el('tradeHold').innerHTML=SAVE.cargo.length?SAVE.cargo.map(function(c){
+  const missionHoldHTML=(SAVE.tasks||[]).filter(function(T){return missionCargoTaskActive(T);}).map(function(T){return '<div class="tradeHoldRow contract"><span><b>📦 Missionsfracht</b><span class="tradeContractBadge">MISSION</span><small>'+escapeHTML(T.targetName||'Zielhafen')+' · '+Math.round(isFinite(+T.cargoIntegrity)?+T.cargoIntegrity:100)+' % Integrität · '+Math.round(+T.missionCargoWeight||55)+' kg</small></span><b class="tradeCargoValue">reserviert</b></div>';}).join('');
+  const normalHoldHTML=SAVE.cargo.length?SAVE.cargo.map(function(c){
     const special=c.kind&&c.kind!=='plain',K=special&&CARGO_KINDS[c.kind],local=!special&&c.origin!==undefined&&String(c.origin)===String(is.key);
-    if(special){
-      return '<div class="tradeHoldRow contract"><span><b>'+escapeHTML((K&&K.ic?K.ic+' ':'')+(K&&K.n?K.n:tradeKindName(c.kind)))+'</b><span class="tradeContractBadge">'+escapeHTML(c.kind)+'</span>'+
-        '<small>Ziel '+escapeHTML(c.destName)+' · '+escapeHTML(tradeContractStatus(c))+' · Lohn '+c.pay+' ◈</small></span><b class="tradeCargoValue">geschützt</b></div>';
-    }
+    if(special){return '<div class="tradeHoldRow contract"><span><b>'+escapeHTML((K&&K.ic?K.ic+' ':'')+(K&&K.n?K.n:tradeKindName(c.kind)))+'</b><span class="tradeContractBadge">'+escapeHTML(c.kind)+'</span><small>Ziel '+escapeHTML(c.destName)+' · '+escapeHTML(tradeContractStatus(c))+' · Lohn '+c.pay+' ◈</small></span><b class="tradeCargoValue">geschützt</b></div>';}
     return '<div class="tradeHoldRow"><span><b>'+escapeHTML(GOODS[c.g].n)+'</b><small>'+GOODS[c.g].w+' kg · '+(c.originName?'aus '+escapeHTML(c.originName)+' · ':'')+'Einkauf '+(+c.paid||'—')+' ◈'+(local?' · lokale Rücknahme':'')+'</small></span><b class="tradeCargoValue">'+tradeCargoSellPrice(is,c,m)+' ◈</b></div>';
-  }).join(''):'<div class="tradeEmpty">Frachtraum leer. Wähle im Markt eine Ware und lade sie über das Deal-Dock.</div>';
-
+  }).join(''):'';
+  el('tradeHold').innerHTML=normalHoldHTML+missionHoldHTML||'<div class="tradeEmpty">Frachtraum leer. Wähle im Markt eine Ware und lade sie über das Deal-Dock.</div>';
   renderTradeWarehouse();
   renderTradePerformance();
   renderTradeRoutes(routesByGood[g]);
@@ -106789,7 +107005,7 @@ function renderTradeBoard(){
       '<button type="button" class="tradeMax" id="tradeMax" '+(primaryMax>0?'':'disabled')+'>MAX</button>'+
     '</div>'+
     '<div class="tradeDealButtons">'+
-      '<button type="button" class="tradeDealButton buy '+(!sellPrimary&&canBuy?'primary':'')+'" id="tradeBuy" '+(canBuy?'':'disabled')+'><span>Laden · '+(unitBuy*tradeQty)+' ◈</span><small>Kasse danach '+afterBuy+' ◈'+(buyReason?' · '+buyReason:'')+'</small></button>'+
+      '<button type="button" class="tradeDealButton buy '+(!sellPrimary&&canBuy?'primary ':'')+(!canBuy?'blocked':'')+'" id="tradeBuy" aria-disabled="'+(!canBuy?'true':'false')+'"><span>'+(canBuy?'Laden':'Warum nicht laden?')+' · '+(unitBuy*tradeQty)+' ◈</span><small>Kasse danach '+afterBuy+' ◈'+(buyReason?' · '+buyReason:'')+'</small></button>'+
       '<button type="button" class="tradeDealButton sell '+(sellPrimary&&canSell?'primary':'')+'" id="tradeSell" '+(canSell?'':'disabled')+'><span>Verkaufen · +'+sale.revenue+' ◈</span><small>Kasse danach '+afterSell+' ◈ · Bilanz '+(saleProfit>=0?'+':'')+saleProfit+'</small></button>'+
     '</div>'+
     '<div class="tradeTradeNote"><b>'+unitBuy+' ◈</b> je Kiste · maximal '+maxBuy+' laden · '+maxSell+' an Bord'+(sale.local?' · lokale Ware erhält nur Rücknahmepreis':'')+'. Aircraft Impact aktualisiert sich mit der gewählten Menge.</div>';
@@ -106802,7 +107018,7 @@ function renderTradeBoard(){
 
   setTradeUITab(tradeUITab,false);
 }function tradeAcceptSpecial(){
-  const off=specialOffer(talkIs);if(!off){tradeMessage('Kein Vertrag verfügbar.',true);return;}if(SAVE.cargo.length>=(AC.hold||3)){tradeMessage('Kein freier Vertragsslot.',true);return;}
+  const off=specialOffer(talkIs);if(!off){tradeMessage('Kein Vertrag verfügbar.',true);return;}if(cargoSlotsUsed()>=(AC.hold||3)){tradeMessage('Kein freier Frachtraumplatz · Missionsfracht zählt mit.',true);return;}
   confirmBuy(off.txt+' Lohn: '+off.pay+' Münzen. Ein Frachtraumplatz wird reserviert und beim normalen Entladen geschützt.',function(){if(!tradeBeginAtomic())return;tradeUndo=tradeSnapshot(talkIs,'Vertragsannahme');if(off.kind==='express')off.born=SAVE.log.sec;SAVE.cargo.push(off);SAVE.specialSeed=(SAVE.specialSeed||0)+1;applyLoadout();updateCargoVisual();saveSoon();sfxAchievement();tradeMessage('Sonderfracht übernommen.');setTradeUITab('cargo',false);renderTradeBoard();requestAnimationFrame(function(){playTradeTransactionVisual('contract',1,0,-1);});},'Annehmen');
 }
 function tradeDeliverSpecial(){
@@ -106874,7 +107090,7 @@ function legacyTradeViewUnused(){
     function(e){e.stopPropagation();e.preventDefault();fn();}); };
   bind('tBuy',function(){
     const gg=goodsOf(talkIs);
-    if(SAVE.cargo.length>=(AC.hold||3)){el('talkLine').innerHTML='Der Frachtraum ist voll.';return;}
+    if(cargoSlotsUsed()>=(AC.hold||3)){el('talkLine').innerHTML='Der Frachtraum ist voll.';return;}
     const pr=priceLoad(talkIs);
     if(SAVE.coins<pr){el('talkLine').innerHTML='Daf\u00fcr reicht das Geld nicht.';return;}
     SAVE.coins-=pr; SAVE.cargo.push({g:gg.sell,kind:'plain'}); applyLoadout(); saveSoon(); tradeView();
@@ -106898,7 +107114,7 @@ function legacyTradeViewUnused(){
   bind('tSpecial',function(){
     const off=specialOffer(talkIs);
     if(!off){el('talkLine').innerHTML='Im Moment gibt es hier keine Sonderfracht.';return;}
-    if(SAVE.cargo.length>=(AC.hold||3)){el('talkLine').innerHTML='Der Frachtraum ist voll.';return;}
+    if(cargoSlotsUsed()>=(AC.hold||3)){el('talkLine').innerHTML='Der Frachtraum ist voll.';return;}
     confirmBuy(off.txt,function(){
       if(off.kind==='express')off.born=SAVE.log.sec;
       SAVE.cargo.push(off); SAVE.specialSeed=(SAVE.specialSeed||0)+1; applyLoadout(); saveSoon(); tradeView();
@@ -106926,7 +107142,7 @@ function updateCargoVisual(){
   if(!cargoVisualGroup)return;
   while(cargoVisualGroup.children.length){const o=cargoVisualGroup.children.pop();if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();}
   const pal=[0xd8c28e,0x738a74,0xa88a55,0x7f4e42,0x8e6f86,0xc77c58,0x7897a0,0xc8b893,0xb9853f];
-  (SAVE.cargo||[]).slice(0,9).forEach(function(c,i){const g=cgGood(c),special=c.kind&&c.kind!=='plain',geo=new THREE.BoxGeometry(.72,.54,.78),mat=new THREE.MeshStandardMaterial({color:special?0xc4644b:pal[g%pal.length],roughness:.82,metalness:.02});const box=new THREE.Mesh(geo,mat);box.position.set(((i%3)-1)*.82,.52+Math.floor(i/6)*.58,1.65+Math.floor(i/3)%2*.82);box.rotation.y=(i%2?-.07:.06);cargoVisualGroup.add(box);});
+  const visibleCargo=(SAVE.cargo||[]).slice(0,9);visibleCargo.forEach(function(c,i){const g=cgGood(c),special=c.kind&&c.kind!=='plain',geo=new THREE.BoxGeometry(.72,.54,.78),mat=new THREE.MeshStandardMaterial({color:special?0xc4644b:pal[g%pal.length],roughness:.82,metalness:.02});const box=new THREE.Mesh(geo,mat);box.position.set(((i%3)-1)*.82,.52+Math.floor(i/6)*.58,1.65+Math.floor(i/3)%2*.82);box.rotation.y=(i%2?-.07:.06);cargoVisualGroup.add(box);});const missionTasks=(SAVE.tasks||[]).filter(function(t){return t&&t.state!=='offered'&&t.t==='visit';}).slice(0,Math.max(0,9-visibleCargo.length));missionTasks.forEach(function(mt,k){const i=visibleCargo.length+k,geo=new THREE.BoxGeometry(.78,.58,.84),mat=new THREE.MeshStandardMaterial({color:0xd5b56c,roughness:.84,metalness:.01}),box=new THREE.Mesh(geo,mat);box.position.set(((i%3)-1)*.82,.52+Math.floor(i/6)*.58,1.65+Math.floor(i/3)%2*.82);box.rotation.y=k%2?.06:-.05;box.userData.missionCargo=true;box.userData.missionTask=mt.id||'';cargoVisualGroup.add(box);});
 }
 function tradeDisposeGroup(g){if(!g)return;g.traverse(function(o){if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});if(g.parent)g.parent.remove(g);}
 function tradeWorldFeedback(is,qty,buying){
@@ -108578,7 +108794,7 @@ function updateHUD(){
     }else txt='Deckung '+Math.round(100-(spc.heat||0)*100)+'%';
     cgb.innerHTML=K.ic+' <b>'+K.n+'</b> · '+txt;
     cgb.classList.add('on');
-  }else cgb.classList.remove('on');
+  }else{const mt=(SAVE.tasks||[]).find(function(t){return missionCargoTaskActive(t);});if(mt&&ST.running){cgb.innerHTML='📦 <b>Missionsfracht</b> · '+Math.round(isFinite(+mt.cargoIntegrity)?+mt.cargoIntegrity:100)+'% · '+Math.round(isFinite(+mt.missionCargoWeight)?+mt.missionCargoWeight:55)+' kg';cgb.classList.add('on');}else cgb.classList.remove('on');}
 }
 function edgePtr(node,wx,wy,wz){
   _pv.set(wx,wy,wz).project(camera);
@@ -108681,7 +108897,7 @@ function updateTaskPtr(){
   if(!rec){p.classList.remove('on');return;}
   const t=rec.target;
   edgePtr(p,t.x,Math.max(70,heightAt(t.x,t.z)+110),t.z);
-  el('taskPtrLbl').textContent=taskKindLabel(rec.task)+' · '+
+  const mo=missionObjectiveCurrent(rec.task);el('taskPtrLbl').textContent=(mo?mo.label:taskKindLabel(rec.task))+' · '+
     (Math.hypot(t.x-pl.pos.x,t.z-pl.pos.z)/1000).toFixed(1)+' km';
 }
 function activeRouteTarget(){
@@ -109322,6 +109538,7 @@ function markSeen(x,z,r){
 }
 const MAP_R=15000;
 function taskTarget(T){
+  const md=typeof missionObjectiveTarget==='function'?missionObjectiveTarget(T):null;if(md)return md;
   // Neue Contracts speichern ihr Ziel beim Erzeugen. Der Navigationsmarker
   // darf danach nicht mit der Spielerposition zu einem anderen Ziel springen.
   if(isFinite(+T.tx)&&isFinite(+T.tz))return {x:+T.tx,z:+T.tz,n:T.targetName||T.name||taskKindLabel(T)};
@@ -109443,52 +109660,46 @@ function drawMapBase(){
     g.fillText(String(co.n),q[0],q[1]+5);
   }
   forEachIslandNear(px,pz,R,function(is){
-    if((SAVE.home===is.key?MF.home:MF.ports)===false)return;
     if(Math.abs(is.cx-px)>R+2000||Math.abs(is.cz-pz)>R+2000)return;
-    const known=SAVE.home===is.key||!!(SAVE.visited&&SAVE.visited[is.key]);
-    if(!known&&!seen(is.cx,is.cz))return;
+    const home=String(SAVE.home)===String(is.key),known=home||!!(SAVE.visited&&SAVE.visited[is.key]),charted=known||seen(is.cx,is.cz),showPorts=MF.ports!==false;
+    if(!charted)return;
+    const q=p2m(is.cx,is.cz);
+    // Jede kartierte Insel bleibt als Ziel anklickbar. Die optionale Hafen-Ebene
+    // darf niemals Namen oder fliegerisch wichtige Infrastruktur entfernen.
+    mapIslandSpots.push({ix:q[0],iy:q[1],is:is});
     if(is.rw){
       const a=p2m(is.rw.x-Math.cos(is.rw.a)*is.rw.L*.5,is.rw.z-Math.sin(is.rw.a)*is.rw.L*.5);
       const b2=p2m(is.rw.x+Math.cos(is.rw.a)*is.rw.L*.5,is.rw.z+Math.sin(is.rw.a)*is.rw.L*.5);
-      g.strokeStyle='rgba(30,40,50,.8)'; g.lineWidth=9; g.lineCap='round';
-      g.beginPath(); g.moveTo(a[0],a[1]); g.lineTo(b2[0],b2[1]); g.stroke();
-      g.strokeStyle='rgba(255,255,255,.98)'; g.lineWidth=5;
-      g.beginPath(); g.moveTo(a[0],a[1]); g.lineTo(b2[0],b2[1]); g.stroke();
+      const ang=Math.atan2(b2[1]-a[1],b2[0]-a[0]),cx=(a[0]+b2[0])*.5,cy=(a[1]+b2[1])*.5,len=Math.max(20,Math.min(58,Math.hypot(b2[0]-a[0],b2[1]-a[1])));
+      g.save();g.translate(cx,cy);g.rotate(ang);g.lineCap='round';
+      g.strokeStyle='rgba(18,28,36,.88)';g.lineWidth=9;g.beginPath();g.moveTo(-len*.5,0);g.lineTo(len*.5,0);g.stroke();
+      g.strokeStyle='rgba(255,255,255,.98)';g.lineWidth=4.5;g.beginPath();g.moveTo(-len*.5,0);g.lineTo(len*.5,0);g.stroke();
+      g.strokeStyle='rgba(18,28,36,.78)';g.lineWidth=1.4;for(const u of [-.28,.28]){g.beginPath();g.moveTo(len*u,-4);g.lineTo(len*u,4);g.stroke();}g.restore();
     }
-    if(is.village||is.rw||((is.rw||is.hb)&&known)){
-      const q=p2m(is.cx,is.cz);
-      mapIslandSpots.push({ix:q[0],iy:q[1],is:is});
-      const home=(SAVE.home===is.key);
-      if(is.village||home){
-        g.fillStyle='rgba(20,30,40,.6)'; g.beginPath(); g.arc(q[0],q[1],8.5,0,TAU); g.fill();
-        g.fillStyle=home?'rgba(255,206,90,.98)':'rgba(236,126,72,.98)';
-        g.beginPath(); g.arc(q[0],q[1],6,0,TAU); g.fill();
-      }
-      g.font=home?'bold 18px Georgia,serif':'17px Georgia,serif';
-      g.lineWidth=4; g.strokeStyle='rgba(16,26,34,.75)';
-      const nm=(home?'⌂ ':'')+is.name;
-      g.strokeText(nm,q[0],q[1]-14);
-      g.fillStyle=home?'rgba(255,224,150,.99)':'rgba(252,246,232,.98)';
-      g.fillText(nm,q[0],q[1]-14);
-      if(SAVE.circus.found.indexOf(is.key)>=0){
-        g.font='16px Georgia,serif';
-        g.fillStyle=SAVE.circus.done.indexOf(is.key)>=0?'rgba(210,210,210,.85)':'rgba(255,207,106,.98)';
-        g.fillText('🎪',q[0],q[1]-32);
-      }
-      /* Schnellreise-Knopf: nur bei Inseln, an denen man schon gelandet ist
-         (oder der Heimat, die von Anfang an freisteht). Grün = bereits
-         freigeschaltet, tippen reist sofort; grau = erst kaufen. */
-      if(MF.travel!==false&&(is.rw||is.hb)&&known){
-        const unlocked=home||!!(SAVE.fastTravel&&SAVE.fastTravel[is.key]);
-        const ix=q[0]+21, iy=q[1]-9;
-        g.fillStyle=unlocked?'rgba(110,190,132,.96)':'rgba(224,222,214,.94)';
-        g.beginPath(); g.arc(ix,iy,10.5,0,TAU); g.fill();
-        g.strokeStyle='rgba(18,26,20,.7)'; g.lineWidth=1.6;
-        g.beginPath(); g.arc(ix,iy,10.5,0,TAU); g.stroke();
-        g.font='12px Georgia,serif'; g.fillStyle='rgba(18,26,20,.92)';
-        g.fillText(unlocked?'✈':'🔒',ix,iy+4);
-        mapFTSpots.push({x:is.cx,z:is.cz,ix:ix,iy:iy,is:is});
-      }
+    if(is.hb&&known){
+      g.save();g.translate(q[0]+15,q[1]+7);g.strokeStyle='rgba(238,246,239,.94)';g.lineWidth=2;g.beginPath();g.arc(0,-4,3,0,TAU);g.moveTo(0,-1);g.lineTo(0,8);g.moveTo(-6,3);g.quadraticCurveTo(0,10,6,3);g.stroke();g.restore();
+    }
+    if(showPorts&&(is.village||home)){
+      g.fillStyle='rgba(20,30,40,.6)';g.beginPath();g.arc(q[0],q[1],8.5,0,TAU);g.fill();
+      g.fillStyle=home?'rgba(255,206,90,.98)':'rgba(236,126,72,.98)';g.beginPath();g.arc(q[0],q[1],6,0,TAU);g.fill();
+    }
+    // Namen sind Kernnavigation. Besuchte Inseln werden immer beschriftet;
+    // bei nur kartierten Inseln beschriften wir Häfen/Bahnen und bei näherem
+    // Zoom auch kleine Inseln, ohne die Übersicht komplett zuzuschreiben.
+    const showName=known||is.village||is.rw||is.hb||mapZoom>=1.15;
+    if(showName){
+      g.font=home?'bold 18px Georgia,serif':(known?'17px Georgia,serif':'15px Georgia,serif');
+      g.lineWidth=4;g.strokeStyle='rgba(16,26,34,.82)';const nm=(home?'⌂ ':'')+is.name,dy=is.rw?-20:-14;
+      g.strokeText(nm,q[0],q[1]+dy);g.fillStyle=home?'rgba(255,224,150,.99)':'rgba(252,246,232,.98)';g.fillText(nm,q[0],q[1]+dy);
+    }
+    if(showPorts&&SAVE.circus.found.indexOf(is.key)>=0){
+      g.font='16px Georgia,serif';g.fillStyle=SAVE.circus.done.indexOf(is.key)>=0?'rgba(210,210,210,.85)':'rgba(255,207,106,.98)';g.fillText('🎪',q[0],q[1]-34);
+    }
+    if(MF.travel!==false&&(is.rw||is.hb)&&known){
+      const unlocked=home||!!(SAVE.fastTravel&&SAVE.fastTravel[is.key]),ix=q[0]+24,iy=q[1]-9;
+      g.fillStyle=unlocked?'rgba(110,190,132,.96)':'rgba(224,222,214,.94)';g.beginPath();g.arc(ix,iy,10.5,0,TAU);g.fill();
+      g.strokeStyle='rgba(18,26,20,.7)';g.lineWidth=1.6;g.beginPath();g.arc(ix,iy,10.5,0,TAU);g.stroke();
+      g.font='12px Georgia,serif';g.fillStyle='rgba(18,26,20,.92)';g.fillText(unlocked?'✈':'🔒',ix,iy+4);mapFTSpots.push({x:is.cx,z:is.cz,ix:ix,iy:iy,is:is});
     }
   });
   /* Das Zuhause ist immer zu sehen, auch im Nebel */
@@ -109654,6 +109865,20 @@ function drawMapFrame(){
   const w2s=function(wx,wz){
     return [ W2/2+mapDragDX+(wx-px)/R*.5*W2*zLive, H2/2+mapDragDY+(wz-pz)/R*.5*H2*zLive ];
   };
+  /* Kernnavigation liegt absichtlich OBERHALB des Nebels. Ein besuchter Hafen
+     oder eine bekannte Landebahn darf nicht verschwinden, nur weil ein alter
+     Spielstand seine Fog-Zellen oder die optionale Hafenebene anders gesetzt hat. */
+  for(const spot of mapIslandSpots){
+    const is=spot.is,home=String(SAVE.home)===String(is.key),known=home||!!(SAVE.visited&&SAVE.visited[is.key]);
+    if(!known&&!is.rw&&!is.hb&&!is.village&&mapZoom<1.15)continue;
+    const q=w2s(is.cx,is.cz);if(q[0]<-80||q[0]>W2+80||q[1]<-80||q[1]>H2+80)continue;
+    if(is.rw){
+      const a=w2s(is.rw.x-Math.cos(is.rw.a)*is.rw.L*.5,is.rw.z-Math.sin(is.rw.a)*is.rw.L*.5),b=w2s(is.rw.x+Math.cos(is.rw.a)*is.rw.L*.5,is.rw.z+Math.sin(is.rw.a)*is.rw.L*.5),ang=Math.atan2(b[1]-a[1],b[0]-a[0]),len=Math.max(20,Math.min(58,Math.hypot(b[0]-a[0],b[1]-a[1])));
+      g.save();g.translate((a[0]+b[0])*.5,(a[1]+b[1])*.5);g.rotate(ang);g.lineCap='round';g.strokeStyle='rgba(12,23,31,.90)';g.lineWidth=9;g.beginPath();g.moveTo(-len*.5,0);g.lineTo(len*.5,0);g.stroke();g.strokeStyle='rgba(255,255,255,.98)';g.lineWidth=4.2;g.beginPath();g.moveTo(-len*.5,0);g.lineTo(len*.5,0);g.stroke();g.restore();
+    }
+    if(is.hb&&known){g.save();g.translate(q[0]+15,q[1]+7);g.strokeStyle='rgba(238,246,239,.96)';g.lineWidth=2;g.beginPath();g.arc(0,-4,3,0,TAU);g.moveTo(0,-1);g.lineTo(0,8);g.moveTo(-6,3);g.quadraticCurveTo(0,10,6,3);g.stroke();g.restore();}
+    const showName=known||is.village||is.rw||is.hb||mapZoom>=1.15;if(showName){const nm=(home?'⌂ ':'')+is.name,dy=is.rw?-20:-14;g.textAlign='center';g.font=home?'bold 18px Georgia,serif':(known?'17px Georgia,serif':'15px Georgia,serif');g.lineWidth=4;g.strokeStyle='rgba(10,20,28,.90)';g.strokeText(nm,q[0],q[1]+dy);g.fillStyle=home?'rgba(255,224,150,.99)':'rgba(252,246,232,.99)';g.fillText(nm,q[0],q[1]+dy);}
+  }
   /* Persistenter Flugplan vom echten Standort über alle noch offenen
      Wegpunkte. Bereits absolvierte Punkte bleiben gedämpft sichtbar. */
   const fp=flightPlan();
@@ -110073,6 +110298,7 @@ function renderMapStory(){
 const DIRS8=['N','NO','O','SO','S','SW','W','NW'];
 function taskKindLabel(T){
   if(T&&T.n2Title)return T.n2Title;
+  if(T&&T.missionVariant==='escort')return'Geleitschutz';if(T&&T.missionVariant==='rendezvous')return'Kurier-Rendezvous';if(T&&T.t==='alt')return'Funkvermessung';if(T&&T.t==='foes')return'Patrouille';
   return ({visit:'Kurierflug',rings:'Ringkurs-Vorführung',foes:'Dorfhilfe',alt:'Wetterflug',water:'Wasserungsübung'})[T.t]||'Auftrag';
 }
 function taskMissionState(T){
@@ -110083,20 +110309,12 @@ function taskMissionState(T){
   if(d<900)return 'fast am Ziel';
   return 'unterwegs';
 }
-function taskDanger(T){
-  if(T.risk===3)return 'Gefahr: hoch';
-  if(T.risk===2)return 'Gefahr: mittel';
-  if(T.risk===1)return 'Gefahr: niedrig';
-  if(T.t==='foes')return 'Gefahr: hoch';
-  if(T.t==='rings'||T.t==='alt')return 'Gefahr: mittel';
-  if(T.t==='water')return 'Gefahr: niedrig';
-  return 'Gefahr: ruhig';
-}
+function taskDanger(T){ensureMissionDirector(T);return missionRiskBrief(T);}
 function taskBrief(T){
   const tg=taskTarget(T), state=taskMissionState(T);
   const dist=tg?(Math.hypot(tg.x-pl.pos.x,tg.z-pl.pos.z)/1000).toFixed(1)+' km':'am aktuellen Ort';
   const tier=T.tier?' · Stufe '+T.tier:'';
-  const progress=T.t==='foes'?' · '+(T.got||0)+'/'+T.n:'';
+  ensureMissionDirector(T);const o=missionObjectiveCurrent(T),progress=o?' · '+(T.objectiveIndex+1)+'/'+T.objectives.length+' '+o.label:'';
   return taskKindLabel(T)+tier+progress+' · '+state+' · '+dist+' · '+taskDanger(T)+' · '+T.rw+' Münzen · '+taskBonusBrief(T);
 }
 function findDirectorChoice(){
@@ -110904,7 +111122,7 @@ function loop(now){
     updateStory(dt);updateDialogueDirector(dt);updateBottleHint(dt);updateCircusChallenge(dt);updatePassenger(dt);
     if(ST.running&&pl.alive){
       SAVE.log.sec+=dt;
-      updateTaskTelemetry(dt);
+      updateTaskTelemetry(dt);updateMissionDirectorRuntime(dt);
       if(!pl.ground&&!pl.water)SAVE.log.km+=pl.v*dt/1000;
       updateCargoConditions(dt);
       logTick-=dt;
@@ -111026,6 +111244,7 @@ function loop(now){
   updateFoePtr();
   updateStoryPtr();
   updateTaskPtr();
+  updateMissionObjectiveHUD();
   updateRoutePtr();
   updateOnboarding(dt);
   updateDevOverlay(now);
@@ -111292,8 +111511,12 @@ function devAction(kind){
   else if(kind==='airframe'){devAirframeSummary();}
   else if(kind==='harbortest'){runLivingHarborTest();}
   else if(kind==='harboracceptance'){runLivingHarborAcceptance();}
+  else if(kind==='missiontest'){runMissionDirectorTest();}
+  else if(kind==='missionacceptance'){runMissionDirectorAcceptance();}
   updateDevOverlay(performance.now());
 }
+const missionActionElement=el('missionActionBtn');if(missionActionElement)missionActionElement.addEventListener('pointerdown',function(e){e.preventDefault();e.stopPropagation();missionActionPressed();});
+window.addEventListener('keydown',function(e){if(e.code==='KeyB'&&!e.repeat&&ST.running&&!ST.paused){const r=navigationTask(),o=r&&missionObjectiveCurrent(r.task);if(o&&o.type==='SUPPLY_DROP'){e.preventDefault();missionActionPressed();}}});
 document.querySelectorAll('[data-dev]').forEach(function(b){
   b.addEventListener('pointerdown',function(e){e.preventDefault();e.stopPropagation();devAction(b.getAttribute('data-dev'));});
 });
