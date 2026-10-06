@@ -4771,6 +4771,7 @@
         <div class="opt tap on" id="oGfxVC">Volumetrische Wolken</div>
         <div class="opt tap on" id="oGfxWater">Wasserspiegelung</div>
         <div class="opt tap on" id="oGfxDepth">Wassertiefe</div>
+        <div class="opt tap on" id="oGfxTerrain">Geländedetail</div>
         <div class="opt tap on" id="oGfxShadow">Weite Schatten</div>
         <div class="opt tap on" id="oGfxAO">Umgebungsverdeckung</div>
         <div class="opt tap on" id="oGfxRes">Hohe Auflösung</div>
@@ -91717,6 +91718,7 @@ function buildGreen(t,rec){
    dieselbe Einheitsgröße (Y-zentriert, Radius~1) begrenzt wie der Kegel
    unten, damit dieselbe anisotrope Instanz-Skalierung passt. */
 function rockBlockGeo(){
+  if(P4&&P4.on)return p4RockBlockGeo();   // Phase 4
   // Jeder Quader kippt jetzt auch um X/Z, nicht nur um Y — rein Y-gedrehte
   // Kisten behalten eine exakt waagrechte Ober-/Unterseite und lesen sich
   // aus der Luft sofort als "Kiste", egal wie oft man sie dreht.
@@ -91734,6 +91736,7 @@ function rockBlockGeo(){
 /* Geschichtete Strata — vier flache, leicht gedrehte und versetzte Platten
    übereinander, wie abgetragenes Sedimentgestein. */
 function rockStrataGeo(){
+  if(P4&&P4.on)return p4RockStrataGeo();  // Phase 4
   const p=[];
   let b1=new THREE.BoxGeometry(2.0,0.22,1.6); b1.translate(0,-.40,0); p.push(geoCol(b1,0xc7b998));
   let b2=new THREE.BoxGeometry(1.7,0.22,1.35); b2.rotateY(.12); b2.translate(.05,-.16,0);
@@ -91749,6 +91752,7 @@ function rockStrataGeo(){
    deterministisch verformt und facettiert; Instanzen skalieren ihn weiter.
    So entstehen echte Bruchflächen statt nur gedrehter Quader. */
 function fracturedRockGeo(seed,face){
+  if(P4&&P4.on)return face?p4FaceRockGeo(seed):p4BrokenGeo(seed);   // Phase 4
   let g=new THREE.IcosahedronGeometry(1,1).toNonIndexed();
   const a=g.attributes.position;
   for(let i=0;i<a.count;i++){
@@ -91762,6 +91766,7 @@ function fracturedRockGeo(seed,face){
   return geoCol(g,face?0xead8bb:0xddc9a8);
 }
 function cliffSlabGeo(seed){
+  if(P4&&P4.on)return p4CliffGeo(seed);   // Phase 4
   let g=new THREE.IcosahedronGeometry(1,1).toNonIndexed();const a=g.attributes.position;
   for(let i=0;i<a.count;i++){
     let x=a.getX(i),y=a.getY(i),z=a.getZ(i);
@@ -91810,9 +91815,9 @@ function buildSystemNaturalLandmarks(t,rec){
     }
     if(!best)continue;
     if(kind==='rockNeedle'){
-      const m=new THREE.Mesh(G('naturalNeedle',naturalNeedleGeo),propMat);m.position.set(is.cx+best.x,best.h-2,is.cz+best.z);m.rotation.y=rnd()*TAU;const s=8+rnd()*7;m.scale.set(s,1.25*s,s*.68);m.castShadow=true;m.receiveShadow=true;scene.add(m);rec.meshes.push(m);
+      const m=new THREE.Mesh(G('naturalNeedle',naturalNeedleGeo),P4.rockMat||propMat);m.position.set(is.cx+best.x,best.h-2,is.cz+best.z);m.rotation.y=rnd()*TAU;const s=8+rnd()*7;m.scale.set(s,1.25*s,s*.68);m.castShadow=true;m.receiveShadow=true;scene.add(m);rec.meshes.push(m);
     }else if(kind==='guardianBoulder'){
-      const m=new THREE.Mesh(G('naturalGuardian',brokenBoulderGeoB),propMat);m.position.set(is.cx+best.x,best.h+.4,is.cz+best.z);m.rotation.set((rnd()-.5)*.15,rnd()*TAU,(rnd()-.5)*.15);const s=9+rnd()*8;m.scale.set(s,7+rnd()*7,s*(.75+rnd()*.4));m.castShadow=true;m.receiveShadow=true;scene.add(m);rec.meshes.push(m);
+      const m=new THREE.Mesh(G('naturalGuardian',brokenBoulderGeoB),P4.rockMat||propMat);m.position.set(is.cx+best.x,best.h+.4,is.cz+best.z);m.rotation.set((rnd()-.5)*.15,rnd()*TAU,(rnd()-.5)*.15);const s=9+rnd()*8;m.scale.set(s,7+rnd()*7,s*(.75+rnd()*.4));m.castShadow=true;m.receiveShadow=true;scene.add(m);rec.meshes.push(m);
     }else if(kind==='ancientPine'){
       /* Markanter Schirm-/Pinienbaum als echter Vorder-/Mittelgrundanker. */
       const grp=new THREE.Group();
@@ -91823,7 +91828,7 @@ function buildSystemNaturalLandmarks(t,rec){
       const s=1.78+rnd()*.52;grp.scale.set(s*1.16,s*1.24,s*1.10);scene.add(grp);rec.meshes.push(grp);
     }else{
       const grp=new THREE.Group();grp.position.set(is.cx+best.x,best.h,is.cz+best.z);
-      for(let j=0;j<6;j++){const m=new THREE.Mesh(G(j&1?'naturalScreeA':'naturalScreeB',j&1?brokenBoulderGeoA:brokenBoulderGeoB),propMat),a=j/6*TAU+rnd()*.25,r=6+rnd()*13,s=2.2+rnd()*4;m.position.set(Math.cos(a)*r,(rnd()-.5)*1.2,Math.sin(a)*r);m.rotation.y=rnd()*TAU;m.scale.set(s,s*.42,s*(.7+rnd()*.4));grp.add(m);}scene.add(grp);rec.meshes.push(grp);
+      for(let j=0;j<6;j++){const m=new THREE.Mesh(G(j&1?'naturalScreeA':'naturalScreeB',j&1?brokenBoulderGeoA:brokenBoulderGeoB),P4.rockMat||propMat),a=j/6*TAU+rnd()*.25,r=6+rnd()*13,s=2.2+rnd()*4;m.position.set(Math.cos(a)*r,(rnd()-.5)*1.2,Math.sin(a)*r);m.rotation.y=rnd()*TAU;m.scale.set(s,s*.42,s*(.7+rnd()*.4));grp.add(m);}scene.add(grp);rec.meshes.push(grp);
     }
     rememberLandscapeLandmark(rec,is,kind,best.x,best.h,best.z);
   }
@@ -91834,6 +91839,7 @@ function buildRocks(t,rec){
   const sm=[],sc2=[],bkm=[],bkc=[],stm=[],stc=[],frm=[],frc=[],fr2m=[],fr2c=[],coastm=[],coastc=[],coast2m=[],coast2c=[],
         coastCliffM=[],coastCliffC=[],shelfM=[],shelfC=[],spanR=t.spanR;
   rec.coastProfile={sand:0,rock:0,cliff:0,lagoon:0};
+  p4BeachBegin(is);
   for(let k=0;k<12;k++){
     const a=rnd()*TAU, rr=spanR*(1.0+rnd()*.30);
     const x=Math.cos(a)*rr, z=Math.sin(a)*rr;
@@ -91916,7 +91922,7 @@ function buildRocks(t,rec){
   for(let k=0;k<42;k++){
     const a=(k/42+rnd()*.014)*TAU,kind=coastClassAt(t,is,a);rec.coastProfile[kind]++;
     const shore=shoreLocal(t,a),ca=Math.cos(a),sa=Math.sin(a);
-    if(kind==='sand')continue;
+    if(kind==='sand'){p4BeachAt(t,is,a,shore);continue;}
     if(kind==='lagoon'){
       const rr=shore+18+rnd()*42,x=ca*rr,z=sa*rr;
       dummy.position.set(x,-1.8-rnd()*.7,z);dummy.rotation.set(0,rnd()*TAU,0);
@@ -92026,13 +92032,14 @@ function buildRocks(t,rec){
   addInstanced(G('goat',goatGeo),gm,gc,ctr,rad2,rec);
   addInstanced(G('hay',hayGeo),hym,hyc,ctr,rad2,rec);
   addInstanced(G('hut',hutGeo),hum,huc,ctr,rad2,rec);
-  addInstanced(G('stack',()=>geoCol(new THREE.ConeGeometry(1,1,7),0xcfc3a6)),sm,sc2,ctr,rad2,rec);
-  addInstanced(G('rockBlock',rockBlockGeo),bkm,bkc,ctr,rad2,rec);
-  addInstanced(G('rockStrata',rockStrataGeo),stm,stc,ctr,rad2,rec);
-  addInstanced(G('rockBrokenA',brokenBoulderGeoA),coastm,coastc,ctr,rad2,rec);
-  addInstanced(G('rockBrokenB',brokenBoulderGeoB),coast2m,coast2c,ctr,rad2,rec);
+  addInstanced(G('stack',()=>(P4&&P4.on)?p4StackGeo():geoCol(new THREE.ConeGeometry(1,1,7),0xcfc3a6)),sm,sc2,ctr,rad2,rec,P4.rockMat);
+  addInstanced(G('rockBlock',rockBlockGeo),bkm,bkc,ctr,rad2,rec,P4.rockMat);
+  addInstanced(G('rockStrata',rockStrataGeo),stm,stc,ctr,rad2,rec,P4.rockMat);
+  addInstanced(G('rockBrokenA',brokenBoulderGeoA),coastm,coastc,ctr,rad2,rec,P4.rockMat);
+  addInstanced(G('rockBrokenB',brokenBoulderGeoB),coast2m,coast2c,ctr,rad2,rec,P4.rockMat);
   {const cm=addInstanced(G('coastCliff',cliffFaceGeoA),coastCliffM,coastCliffC,ctr,rad2,rec,cliffMat);if(cm)cm.receiveShadow=false;}
   addInstanced(G('lagoonShelf',lagoonShelfGeo),shelfM,shelfC,ctr,rad2,rec);
+  p4BeachEnd(rec,ctr,rad2);
   {const cm=addInstanced(G('cliffFaceA',cliffFaceGeoA),frm,frc,ctr,rad2,rec,cliffMat);if(cm)cm.receiveShadow=false;}
   {const cm=addInstanced(G('cliffFaceB',cliffFaceGeoB),fr2m,fr2c,ctr,rad2,rec,cliffMat);if(cm)cm.receiveShadow=false;}
   buildSystemNaturalLandmarks(t,rec);
@@ -93881,7 +93888,7 @@ function terrainGridN(is,spanR){
   const p=(SAVE&&SAVE.gfx&&SAVE.gfx.preset)||'ultra';
   const mobile=typeof IS_MOBILE!=='undefined'&&IS_MOBILE;
   const step=p==='low'?38:(p==='medium'?30:(p==='high'?23:18));
-  const cap=p==='low'?96:(p==='medium'?120:(p==='high'?148:176));
+  const cap=p==='low'?96:(p==='medium'?120:(p==='high'?(mobile?148:168):(mobile?176:224)));   // Phase 4: feineres Nahnetz
   const mobileCap=mobile?Math.min(cap,p==='ultra'?148:cap):cap;
   return clamp(Math.round(spanR/step)*2,30,mobileCap);
 }
@@ -107350,6 +107357,10 @@ tapBtn('oGfxVC',()=>{
   VC.want=!VC.want; if(VC.want&&!VC.tried)vcBuild(); markGfxCustom();
 });
 tapBtn('oGfxWater',()=>{ssrOn=!ssrOn;markGfxCustom();});
+tapBtn('oGfxTerrain',()=>{
+  if(!P4.on){say('Geländedetail ist auf diesem Gerät nicht verfügbar');return;}
+  P4.want=!P4.want; markGfxCustom();
+});
 tapBtn('oGfxDepth',()=>{
   if((hdrChecked&&!hdrOK)||SWO.refrFailed||SWO.failed){say('Wassertiefe ist auf diesem Gerät nicht verfügbar');return;}
   SWO.refrWant=!SWO.refrWant; markGfxCustom();
@@ -112624,6 +112635,337 @@ window.SommerwindOceanDebug=function(o){
 };
 
 /* ============================================================
+   AAA-PLAN PHASE 4 · Gelände, Felsen & Küsten
+   ------------------------------------------------------------
+   heightAt() bleibt die einzige Geologie (Kollision, Platzierung, Physik).
+   Diese Phase legt nur Darstellung darüber:
+   - Erosion im Gelände-Shader: ein fraktales Rinnen-Feld, dessen Richtung
+     in jeder Oktave dem Gefälle folgt (Gabor-artige Wellen entlang der
+     Falllinie). Daraus Detail-Normalen, dunklere Rinnen, hellere Grate und
+     Kalkfels an steilen Rinnenwänden — auf allen drei Gelände-Stufen und der
+     Heimatbucht, ohne ein einziges Dreieck mehr.
+   - Material-Mischung: Kalkfels, trockene Grate, feuchte Rinnen und
+     Sandrippel kommen zu den gemalten Vertexfarben dazu; die Palette bleibt
+     die Grundlage.
+   - Felsen-Bibliothek: alle Fels-Meshes (Brandungspfeiler, Blöcke, Strata,
+     Bruchfelsen, Klippenplatten) werden prozedural aus verformten Kugeln mit
+     Bruchflächen und Schichtung erzeugt; ein eigenes Felsmaterial bekommt
+     Schichtfugen, Risse und Flechten im Weltraum.
+   - Strände: Kiesel und Treibholz an Sandküsten.
+   ============================================================ */
+var P4={on:true,rockMat:null,geoDetail:IS_MOBILE?2:3,want:true,dbgOct:-1};
+/* gemeinsame Uniform-Werte (reine Objekte, werden nicht geklont):
+   ero: x Grund-Wellenlänge (m), y Amplitude (m), z Oktaven, w an
+   col: x Kalkfels, y Rinnen-Tönung, z Grat-Aufhellung, w Sandrippel */
+const P4U={ero:{x:260,y:8.0,z:4,w:1},col:{x:.62,y:1,z:1,w:1},rock:{x:1,y:.93,z:.85,w:1}};
+
+/* ---------- Erosion (GLSL) ---------- */
+const P4_ERO_GLSL=`
+  uniform vec4 p4Ero,p4Col,p4Rock;
+  vec2 p4H22(vec2 p){ vec3 p3=fract(vec3(p.xyx)*vec3(.1031,.1030,.0973)); p3+=dot(p3,p3.yzx+33.33); return fract((p3.xx+p3.yz)*p3.zy); }
+  float p4H21(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+  float p4VN(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+    return mix(mix(p4H21(i),p4H21(i+vec2(1.0,0.0)),f.x),mix(p4H21(i+vec2(0.0,1.0)),p4H21(i+vec2(1.0,1.0)),f.x),f.y); }
+  // eine Oktave: Wellen quer zur Falllinie, gewichtet über die Nachbarzellen.
+  // Rückgabe: (Höhe −1…1, Gradient in Zelleinheiten)
+  vec3 p4EroOct(vec2 p,vec2 dir){
+    vec2 ip=floor(p), fp=fract(p);
+    vec3 va=vec3(0.0); float wt=0.0;
+    for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++){
+      vec2 o=vec2(float(i),float(j));
+      vec2 pp=fp-o-0.5-(p4H22(ip+o)-0.5)*0.8;
+      float w=exp(-dot(pp,pp)*2.0);
+      float m=dot(pp,dir)*6.2831853;
+      va+=vec3(cos(m),-sin(m)*6.2831853*dir)*w;
+      wt+=w;
+    }
+    return va/wt;
+  }
+  /* Fraktale Erosion: s0 = Gefälle des Geländes (dh/dx, dh/dz), pix = Meter
+     je Bildpunkt. Rückgabe: x Höhe (m), yz Gradient (Welt), w Grat(+)/Rinne(−) */
+  vec4 p4Erosion(vec2 wxz,vec2 s0,float pix){
+    // großräumig verbogene Koordinaten und wechselnde Tiefe: Rinnen verzweigen
+    // und bündeln sich, statt als gleichmäßige Riffelung zu laufen
+    vec2 wq=wxz/(p4Ero.x*2.2);
+    vec2 warp=vec2(p4VN(wq),p4VN(wq+vec2(7.31,2.17)))-0.5;
+    wxz+=warp*p4Ero.x*1.4;
+    float strength=0.30+0.95*smoothstep(0.25,0.75,p4VN(wq*0.55+vec2(3.3,8.8)));
+    float lam=p4Ero.x, A=p4Ero.y*strength, h=0.0, rs=0.0, rw=0.0;
+    vec2 g=s0, gE=vec2(0.0);
+    for(int k=0;k<4;k++){
+      if(float(k)>=p4Ero.z)break;
+      float fade=smoothstep(3.0*pix,9.0*pix,lam);
+      if(fade<=0.001)break;
+      vec2 dir=vec2(g.y,-g.x); float dl=length(dir);
+      dir=dl>1e-5?dir/dl:vec2(1.0,0.0);
+      vec3 e=p4EroOct(wxz/lam+float(k)*17.31,dir);
+      float a=A*fade;
+      h+=e.x*a;
+      vec2 ge=e.yz*(a/lam);
+      gE+=ge; g+=ge*0.6;
+      rs+=e.x*A; rw+=A;
+      lam*=0.50; A*=0.36;
+    }
+    return vec4(h,gE,rw>0.0?rs/rw:0.0);
+  }`;
+
+/* ---------- Gelände-Material: Erosion, Fels, Rinnen, Sandrippel ---------- */
+function p4TerrainShader(mat){
+  const prev=mat.onBeforeCompile;
+  mat.onBeforeCompile=function(shader){
+    if(prev)prev.call(mat,shader);
+    if(shader.fragmentShader.indexOf('varying vec3 vWP;')<0)return;     // nur mit dem Gelände-Baustein
+    shader.uniforms.p4Ero={value:P4U.ero}; shader.uniforms.p4Col={value:P4U.col}; shader.uniforms.p4Rock={value:P4U.rock};
+    shader.fragmentShader=shader.fragmentShader
+      .replace('#include <common>','#include <common>\n'+P4_ERO_GLSL+'\nvec4 p4E=vec4(0.0); float p4On=0.0;')
+      .replace('#include <color_fragment>',`#include <color_fragment>
+        if(p4Ero.w>0.5){
+          vec3 wn0=normalize(vWN);
+          vec2 s0=-wn0.xz/max(wn0.y,0.25);
+          float pixP=max(length(fwidth(vWP.xz)),0.02);
+          float sl0=length(s0);
+          // Erosion nur an Hängen und über dem Strand, nicht im fernen Dunst
+          float mask=smoothstep(0.04,0.26,sl0)*smoothstep(3.0,22.0,vWP.y)*(1.0-smoothstep(5200.0,9000.0,length(vViewPosition)));
+          if(mask>0.002){
+            p4E=p4Erosion(vWP.xz,s0,pixP);
+            p4E.xyz*=mask; p4On=mask;
+            vec3 c=diffuseColor.rgb;
+            float lum=dot(c,vec3(0.299,0.587,0.114));
+            float veg=smoothstep(0.02,0.14,c.g-c.r);                       // Grün = Bewuchs
+            float gully=clamp(-p4E.w,0.0,1.0)*mask, ridge=clamp(p4E.w,0.0,1.0)*mask;
+            // feuchte, dunklere Rinnen; trockene, hellere Grate
+            c*=1.0-0.22*gully*p4Col.y;
+            c=mix(c,c*vec3(0.86,1.02,0.86),gully*veg*0.45*p4Col.y);
+            c=mix(c,c*1.09+vec3(0.045,0.036,0.0),ridge*(0.60-0.25*veg)*p4Col.z);
+            // Kalkfels an den steilen Rinnenwänden (wo der Bewuchs nicht schließt)
+            float steepE=length(s0+p4E.yz);
+            // Felsaufschlüsse fleckig (großräumiges Rauschen), Bewuchs deckt sie zu
+            float patchR=smoothstep(0.38,0.72,p4VN(vWP.xz*0.0042+vec2(3.7,9.1))*0.7+p4VN(vWP.xz*0.013)*0.3);
+            float rock=smoothstep(0.72,1.15,steepE+ridge*0.30)*(1.0-0.80*veg)*mask*(0.15+0.85*patchR);
+            rock=max(rock,smoothstep(1.05,1.60,steepE)*mask*patchR*0.80);
+            float rd=p4VN(vWP.xz*0.11)*0.6+p4VN(vWP.xz*0.37+vec2(vWP.y*0.2))*0.4;
+            vec3 rc=p4Rock.rgb*1.22*(0.78+0.32*rd)*(0.78+0.22*clamp(lum,0.0,1.2));
+            c=mix(c,rc,rock*p4Col.x);
+            diffuseColor.rgb=c;
+          }
+          // Sandrippel am Strand (nur nah sichtbar)
+          if(p4Col.w>0.5&&vWP.y<5.5&&vWP.y>-2.0&&sl0<0.25){
+            float near=1.0-smoothstep(0.03,0.09,pixP);
+            if(near>0.0){
+              vec2 rdir=normalize(vec2(0.83,0.55));
+              float ph=dot(vWP.xz,rdir)*7.0+p4VN(vWP.xz*0.35)*4.0;
+              p4E.yz+=rdir*cos(ph)*0.10*near*(1.0-smoothstep(1.5,5.5,vWP.y));
+              p4On=max(p4On,near);
+            }
+          }
+        }`)
+      .replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+        if(p4On>0.0){
+          vec3 pw=-vec3(p4E.y,0.0,p4E.z)*max(normalize(vWN).y,0.3);
+          normal=normalize(normal+mat3(viewMatrix)*pw);
+        }`);
+  };
+  mat.needsUpdate=true;
+}
+
+/* ---------- Felsmaterial: Schichtfugen, Risse, Flechten im Weltraum ---------- */
+const P4_ROCK_GLSL=`
+  float p4rH(vec3 p){ p=fract(p*0.3183099+0.1); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+  float p4rN(vec3 x){ vec3 i=floor(x),f=fract(x); f=f*f*(3.0-2.0*f);
+    return mix(mix(mix(p4rH(i),p4rH(i+vec3(1,0,0)),f.x),mix(p4rH(i+vec3(0,1,0)),p4rH(i+vec3(1,1,0)),f.x),f.y),
+               mix(mix(p4rH(i+vec3(0,0,1)),p4rH(i+vec3(1,0,1)),f.x),mix(p4rH(i+vec3(0,1,1)),p4rH(i+vec3(1,1,1)),f.x),f.y),f.z); }`;
+function p4RockShader(mat){
+  const prev=mat.onBeforeCompile;
+  mat.onBeforeCompile=function(shader){
+    if(prev)prev.call(mat,shader);
+    shader.vertexShader=shader.vertexShader
+      .replace('#include <common>','#include <common>\nvarying vec3 vP4WP;\nvarying vec3 vP4WN;')
+      .replace('#include <begin_vertex>',`#include <begin_vertex>
+        {
+          vec4 p4w=vec4(transformed,1.0); vec3 p4n=objectNormal;
+          #ifdef USE_INSTANCING
+            p4w=instanceMatrix*p4w; p4n=mat3(instanceMatrix)*p4n;
+          #endif
+          vP4WP=(modelMatrix*p4w).xyz; vP4WN=normalize(mat3(modelMatrix)*p4n);
+        }`);
+    shader.fragmentShader=shader.fragmentShader
+      .replace('#include <common>','#include <common>\nvarying vec3 vP4WP;\nvarying vec3 vP4WN;\n'+P4_ROCK_GLSL)
+      .replace('#include <color_fragment>',`#include <color_fragment>
+        {
+          vec3 wp=vP4WP, wn=normalize(vP4WN);
+          float fd=1.0-smoothstep(350.0,1600.0,length(vViewPosition));
+          if(fd>0.0){
+            float pix=max(length(fwidth(wp)),0.01);
+            // Schichtfugen: waagrechte, leicht gewellte Bänder
+            float warp=p4rN(wp*0.045)*4.0+p4rN(wp*0.21)*0.8;
+            float band=fract((wp.y+warp)*0.42);
+            float joint=(1.0-smoothstep(0.0,0.07,band))*smoothstep(0.02,0.08,1.0/(pix*8.0+0.02));
+            // Risse: Grate eines Rauschfelds, auf die Wandrichtung projiziert
+            float rn=p4rN(wp*vec3(0.55,0.22,0.55)+vec3(3.1,0.0,7.7));
+            float crack=(1.0-smoothstep(0.0,0.06,abs(rn-0.5)))*(1.0-abs(wn.y))*smoothstep(0.3,0.05,pix);
+            float tone=p4rN(wp*0.08)*0.55+p4rN(wp*0.31)*0.30+p4rN(wp*1.3)*0.15;
+            vec3 c=diffuseColor.rgb*(0.86+0.24*tone);
+            c*=1.0-(0.20*joint+0.28*crack)*fd;
+            // Flechten auf Oberseiten, dunklere Füße
+            float lichen=smoothstep(0.58,0.80,p4rN(wp*0.35+11.0))*smoothstep(0.35,0.85,wn.y);
+            c=mix(c,c*vec3(0.80,0.86,0.62),lichen*0.40*fd);
+            c*=1.0+0.08*smoothstep(0.55,1.0,wn.y);
+            diffuseColor.rgb=mix(diffuseColor.rgb,c,fd);
+          }
+        }`);
+  };
+  mat.needsUpdate=true;
+}
+
+/* ---------- prozedurale Felsformen ---------- */
+function p4Hash3(x,y,z,s){
+  let h=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263)+Math.imul(z|0,2147483647)+Math.imul(s|0,1274126177))|0;
+  h=Math.imul(h^(h>>>13),1274126177); h^=h>>>16;
+  return (h>>>0)*2.3283064365386963e-10;
+}
+function p4Noise3(x,y,z,s){
+  const ix=Math.floor(x),iy=Math.floor(y),iz=Math.floor(z);
+  let fx=x-ix,fy=y-iy,fz=z-iz; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); fz=fz*fz*(3-2*fz);
+  const L=function(a,b,t){return a+(b-a)*t;};
+  const c=function(dx,dy,dz){return p4Hash3(ix+dx,iy+dy,iz+dz,s);};
+  return L(L(L(c(0,0,0),c(1,0,0),fx),L(c(0,1,0),c(1,1,0),fx),fy),L(L(c(0,0,1),c(1,0,1),fx),L(c(0,1,1),c(1,1,1),fx),fy),fz);
+}
+function p4Fbm3(x,y,z,s,oct){
+  let a=.5,f=1,sum=0,n=0;
+  for(let i=0;i<oct;i++){ sum+=a*p4Noise3(x*f,y*f,z*f,s+i*31); n+=a; a*=.5; f*=2.03; }
+  return sum/n;
+}
+/* o: seed, detail, lump (Beulen), cuts (Bruchflächen), strata (Stufen), taper,
+   sx/sy/sz (Achsen), col (Grundfarbe), ofsY (Verschiebung), fiss (senkrechte Klüfte) */
+function p4RockGeo(o){
+  const seed=o.seed||1, det=o.detail===undefined?P4.geoDetail:o.detail;
+  let g=new THREE.IcosahedronGeometry(1,det);
+  if(g.index)g=g.toNonIndexed();
+  const a=g.attributes.position, n=a.count;
+  // Bruchflächen: Ebenen mit zufälliger Lage, alles dahinter wird auf die Ebene gedrückt
+  const cuts=[]; let rs=seed*977+13;
+  const R=function(){ rs=(Math.imul(rs,1664525)+1013904223)>>>0; return rs*2.3283064365386963e-10; };
+  for(let k=0;k<(o.cuts||0);k++){
+    const th=R()*Math.PI*2, ph=Math.acos(R()*1.6-.8);
+    cuts.push([Math.sin(ph)*Math.cos(th),Math.cos(ph),Math.sin(ph)*Math.sin(th),.58+R()*.30]);
+  }
+  if(o.flatTop)cuts.push([0,1,0,o.flatTop]);
+  const col=new Float32Array(n*3), base=new THREE.Color(o.col||0xd8c8a8);
+  for(let i=0;i<n;i++){
+    let x=a.getX(i),y=a.getY(i),z=a.getZ(i);
+    const r=1+(p4Fbm3(x*1.7+seed,y*1.7,z*1.7,seed,3)-.5)*(o.lump||.5)+(p4Noise3(x*5.1,y*5.1+seed,z*5.1,seed+7)-.5)*.16
+             +(p4Noise3(x*11.3,y*11.3,z*11.3+seed,seed+11)-.5)*(o.rough||.07);
+    x*=r;y*=r;z*=r;
+    for(const c of cuts){ const d=x*c[0]+y*c[1]+z*c[2]-c[3]; if(d>0){x-=c[0]*d;y-=c[1]*d;z-=c[2]*d;} }
+    if(o.strata){ const k=o.strata, q=(y+1)*k+p4Noise3(x*1.3,0,z*1.3,seed+3)*.6; const fy=q-Math.floor(q);
+      y-=(fy<.5?fy:fy-1)/k*.80; const sh=1-.07*Math.max(0,1-Math.abs(fy-.5)*6); x*=sh; z*=sh; }
+    if(o.fiss){ const fz=Math.abs(Math.sin(x*o.fiss+p4Noise3(x,y*.7,0,seed+5)*2.2)); z-=Math.sign(z||1)*Math.pow(1-fz,6)*.16; }
+    if(o.taper){ const t=(y+1)*.5; x*=1-o.taper*t; z*=1-o.taper*t; }
+    x*=o.sx||1; y*=o.sy||1; z*=o.sz||1; y+=o.ofsY||0;
+    a.setXYZ(i,x,y,z);
+    // Farbe: Kuhlen und Füße dunkler, Oberseiten verwittert heller
+    const occ=Math.min(1,Math.max(0,(r-1)*2+.55));
+    const up=(y/(o.sy||1)+1)*.5;
+    const k=.70+.20*occ+.16*up;
+    col[i*3]=base.r*k; col[i*3+1]=base.g*k; col[i*3+2]=base.b*k;
+  }
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  g.computeVertexNormals();
+  return g;
+}
+// Ersatzformen für die bisherigen Fels-Meshes (gleiche Einheitsgrößen); Feinheit
+// je Form (r185: 20·(n+1)² Dreiecke), auf Mobilgeräten zwei Stufen gröber
+function p4Det(n){ return Math.max(1,n-(IS_MOBILE?2:0)); }
+function p4StackGeo(){ return p4RockGeo({seed:3,detail:p4Det(6),rough:.12,lump:.30,cuts:7,strata:7,taper:.36,sx:.95,sy:.5,sz:.95,flatTop:.86,col:0xd2c4a2}); }
+function p4RockBlockGeo(){ return p4RockGeo({seed:11,detail:p4Det(4),lump:.42,cuts:8,strata:3,sx:1.05,sy:.66,sz:.9,col:0xcfc2a2}); }
+function p4RockStrataGeo(){ return p4RockGeo({seed:17,detail:p4Det(4),lump:.30,cuts:5,strata:5,sx:1.1,sy:.48,sz:.92,col:0xcdbe9c}); }
+function p4FaceRockGeo(seed){ return p4RockGeo({seed:seed,detail:p4Det(5),lump:.34,cuts:6,strata:6,fiss:5,sx:1.18,sy:1.36,sz:.40,col:0xead8bb}); }
+function p4BrokenGeo(seed){ return p4RockGeo({seed:seed,detail:p4Det(4),lump:.48,cuts:9,sx:1.0,sy:.9,sz:.84,col:0xddc9a8}); }
+function p4CliffGeo(seed){ return p4RockGeo({seed:seed,detail:p4Det(7),rough:.11,lump:.26,cuts:5,strata:8,fiss:7.5,sx:1.16,sy:.98,sz:.34,col:0xf0d9bc}); }
+function p4PebbleGeo(){ return p4RockGeo({seed:23,detail:2,lump:.40,cuts:3,sx:1,sy:.55,sz:.8,col:0xb9b0a0}); }
+function p4DriftwoodGeo(){
+  const p=[];
+  let c=new THREE.CylinderGeometry(.16,.22,4.2,7,3); c.rotateZ(Math.PI/2);
+  const a=c.attributes.position;
+  for(let i=0;i<a.count;i++){ const x=a.getX(i); a.setY(i,a.getY(i)+Math.sin(x*.9)*.10); a.setZ(i,a.getZ(i)+Math.sin(x*.6+1)*.12); }
+  p.push(geoCol(c,0xc9c0ae));
+  let b=new THREE.CylinderGeometry(.05,.10,1.2,5); b.rotateZ(.9); b.translate(.9,.35,.05); p.push(geoCol(b,0xb8ae9a));
+  let r=new THREE.SphereGeometry(.34,6,4); r.scale(.7,1,1); r.translate(-2.1,0,0); p.push(geoCol(r,0xa89d88));
+  return mergeGeos(p);
+}
+
+/* ---------- Strände: Kiesel und Treibholz an Sandküsten ---------- */
+const P4B={peb:[],pebC:[],wood:[],woodC:[],rnd:null};
+const _p4D=new THREE.Object3D();
+function p4BeachBegin(is){ P4B.peb.length=0; P4B.pebC.length=0; P4B.wood.length=0; P4B.woodC.length=0; P4B.rnd=rngFor(is,97); }
+function p4BeachAt(t,is,a,shore){
+  if(!P4.on||!P4B.rnd)return;
+  const r=P4B.rnd, ca=Math.cos(a), sa=Math.sin(a), tx=-sa, tz=ca;
+  // Kieselband knapp über der Wasserlinie
+  const nP=4+Math.floor(r()*7);
+  for(let k=0;k<nP;k++){
+    const along=(r()-.5)*70, off=-4+r()*9, x=ca*(shore+off)+tx*along, z=sa*(shore+off)+tz*along, h=gridH(t,x,z);
+    if(h<-.4||h>1.8||rwBlocked(is,x,z,40))continue;
+    _p4D.position.set(x,h-.08,z); _p4D.rotation.set((r()-.5)*.4,r()*Math.PI*2,(r()-.5)*.4);
+    const s=.22+r()*.55; _p4D.scale.set(s*(.8+r()*.6),s,s*(.8+r()*.5)); _p4D.updateMatrix();
+    P4B.peb.push(_p4D.matrix.clone()); P4B.pebC.push(new THREE.Color().setHSL(.09+r()*.03,.05+r()*.08,.62+r()*.22));
+  }
+  // Treibholz an der Flutlinie
+  if(r()<.55){
+    const along=(r()-.5)*60, off=2+r()*7, x=ca*(shore-off)+tx*along, z=sa*(shore-off)+tz*along, h=gridH(t,x,z);
+    if(h>.1&&h<2.6&&!rwBlocked(is,x,z,40)){
+      _p4D.position.set(x,h+.08,z); _p4D.rotation.set(0,r()*Math.PI*2,(r()-.5)*.08);
+      const s=.75+r()*.7; _p4D.scale.set(s,s,s); _p4D.updateMatrix();
+      P4B.wood.push(_p4D.matrix.clone()); P4B.woodC.push(new THREE.Color().setHSL(.08,.08+r()*.06,.72+r()*.14));
+    }
+  }
+}
+function p4BeachEnd(rec,ctr,rad){
+  if(!P4.on)return;
+  const pm=addInstanced(G('p4Pebble',p4PebbleGeo),P4B.peb,P4B.pebC,ctr,rad,rec,P4.rockMat||propMat);
+  const wm=addInstanced(G('p4Driftwood',p4DriftwoodGeo),P4B.wood,P4B.woodC,ctr,rad,rec);
+  if(pm)pm.userData.p4='pebble'; if(wm)wm.userData.p4='driftwood';
+  P4B.rnd=null;
+}
+
+/* ---------- Einbau ---------- */
+(function p4Install(){
+  try{
+    P4.rockMat=new THREE.MeshLambertMaterial({vertexColors:true});
+    P4.rockMat.color.setRGB(1.22,1.18,1.10);
+    addNightFloor(P4.rockMat);
+    p4RockShader(P4.rockMat);
+    p4RockShader(cliffMat);
+    if(typeof SW_CASTER_MATS!=='undefined')SW_CASTER_MATS.add(P4.rockMat);
+    if(typeof swTag==='function')swTag(P4.rockMat,{SW_ROUGH:'0.74',SW_SPEC:'0.8',SW_WETK:'0.9'});
+    p4TerrainShader(landMat); p4TerrainShader(bayLandMat);
+    const rc=cWarmCliff.clone().lerp(cRockD,.35); P4U.rock.x=rc.r; P4U.rock.y=rc.g; P4U.rock.z=rc.b;
+  }catch(e){ P4.on=false; P4U.ero.w=0; console.warn('Phase 4 (Gelände) nicht installiert:',e); }
+})();
+
+/* pro Bild: Qualität aus dem Preset (Oktaven), Prüfschalter */
+function p4Frame(){
+  const p=(SAVE&&SAVE.gfx&&SAVE.gfx.preset)||'ultra';
+  let oct=p==='low'?0:(p==='medium'?2:(p==='high'?3:4));
+  if(p==='custom')oct=PR>=1.25?4:3;
+  if(IS_MOBILE)oct=Math.min(oct,2);
+  if(!P4.want)oct=0;
+  if(P4.dbgOct>=0)oct=P4.dbgOct;
+  P4U.ero.z=oct; P4U.ero.w=(P4.on&&oct>0)?1:0;
+}
+window.SommerwindTerrainDebug=function(o){
+  o=o||{};
+  if('oct' in o)P4.dbgOct=+o.oct;
+  if('amp' in o)P4U.ero.y=+o.amp;
+  if('lam' in o)P4U.ero.x=+o.lam;
+  if('rock' in o)P4U.col.x=+o.rock;
+  if('gully' in o)P4U.col.y=+o.gully;
+  if('ridge' in o)P4U.col.z=+o.ridge;
+  if('ripples' in o)P4U.col.w=+o.ripples;
+  return {on:P4.on,want:P4.want,ero:Object.assign({},P4U.ero),col:Object.assign({},P4U.col),geoDetail:P4.geoDetail};
+};
+
+/* ============================================================
    AAA-PLAN PHASE 0 · Fundament: HDR, TAA, Dithering
    ------------------------------------------------------------
    - Szene, Glanzschein und TAA-Verlauf rechnen in HalfFloat (HDR):
@@ -112877,15 +113219,15 @@ const POST_GRADE_GLSL=`
    Mittel-Preset aktiv und erzeugt so keine sichtbaren Sprünge im Flug. */
 let gfxAuto=false;
 const GFX_PRESETS={
-  low:{label:'Niedrig',note:'Maximale Ruhe für ältere Geräte. Spiegelung, Schatten, Posteffekte und TAA sind aus.',pr:1,scale:.8,post:false,ssr:false,cascades:false,auto:false,taa:false,vc:false,vcq:'low',ao:false,wd:false},
-  medium:{label:'Mittel',note:'Empfohlener Standard: klare Inseln, sanfte Wasserspiegelung, stabile Bildrate.'+(IS_MOBILE?'':' TAA glättet Kanten und rechnet die Auflösung hoch; volumetrische Wolken in mittlerer Qualität.'),pr:1,scale:.8,post:false,ssr:true,cascades:false,auto:true,taa:!IS_MOBILE,vc:!IS_MOBILE,vcq:'medium',ao:false,wd:false},
-  high:{label:'Hoch',note:'Mehr Bildtiefe und Filmlook, TAA-Kantenglättung, volumetrische Wolken, weite Schatten und klares Wasser mit Tiefe. Für aktuelle Desktop- und stärkere Mobilgeräte.',pr:1.25,scale:.9,post:true,ssr:true,cascades:true,auto:false,taa:true,vc:true,vcq:IS_MOBILE?'low':'high',ao:!IS_MOBILE,wd:!IS_MOBILE},
-  ultra:{label:'Ultra',note:'Standard: hohe Auflösung, HDR-Bild mit TAA-Kantenglättung, volumetrische Wolken, Wasserspiegelung und -tiefe, weite Schatten für Gelände, Häuser und Bäume sowie Umgebungsverdeckung; der Filmlook (Bildbearbeitung) bleibt aus.',pr:1.5,scale:1,post:false,ssr:true,cascades:true,auto:false,taa:true,vc:true,vcq:IS_MOBILE?'low':'high',ao:!IS_MOBILE,wd:!IS_MOBILE}
+  low:{label:'Niedrig',note:'Maximale Ruhe für ältere Geräte. Spiegelung, Schatten, Posteffekte und TAA sind aus.',pr:1,scale:.8,post:false,ssr:false,cascades:false,auto:false,taa:false,vc:false,vcq:'low',ao:false,wd:false,gd:false},
+  medium:{label:'Mittel',note:'Empfohlener Standard: klare Inseln, sanfte Wasserspiegelung, stabile Bildrate.'+(IS_MOBILE?'':' TAA glättet Kanten und rechnet die Auflösung hoch; volumetrische Wolken in mittlerer Qualität.'),pr:1,scale:.8,post:false,ssr:true,cascades:false,auto:true,taa:!IS_MOBILE,vc:!IS_MOBILE,vcq:'medium',ao:false,wd:false,gd:true},
+  high:{label:'Hoch',note:'Mehr Bildtiefe und Filmlook, TAA-Kantenglättung, volumetrische Wolken, weite Schatten und klares Wasser mit Tiefe. Für aktuelle Desktop- und stärkere Mobilgeräte.',pr:1.25,scale:.9,post:true,ssr:true,cascades:true,auto:false,taa:true,vc:true,vcq:IS_MOBILE?'low':'high',ao:!IS_MOBILE,wd:!IS_MOBILE,gd:true},
+  ultra:{label:'Ultra',note:'Standard: hohe Auflösung, HDR-Bild mit TAA-Kantenglättung, volumetrische Wolken, Wasserspiegelung und -tiefe, weite Schatten für Gelände, Häuser und Bäume sowie Umgebungsverdeckung; der Filmlook (Bildbearbeitung) bleibt aus.',pr:1.5,scale:1,post:false,ssr:true,cascades:true,auto:false,taa:true,vc:true,vcq:IS_MOBILE?'low':'high',ao:!IS_MOBILE,wd:!IS_MOBILE,gd:true}
 };
 function gfxDevicePR(cap){return Math.min(cap,Math.max(1,window.devicePixelRatio||1));}
 function currentGfxSave(preset,auto){
   return {preset:preset,auto:!!auto,post:!!postOn,ssr:!!ssrOn,cascades:!!cascadesOn,
-    taa:!!TAA.on,vc:!!VC.want,vcq:VC.q,ao:!!SWL.aoWant,wd:!!SWO.refrWant,pr:PR,scale:RENDER_SCALE};
+    taa:!!TAA.on,vc:!!VC.want,vcq:VC.q,ao:!!SWL.aoWant,wd:!!SWO.refrWant,gd:!!P4.want,pr:PR,scale:RENDER_SCALE};
 }
 function applyCustomGfx(saved,fromLoad){
   // Eigene Einstellungen mÃ¼ssen vollstÃ¤ndig im Save stehen. Ã„ltere Saves
@@ -112905,6 +113247,7 @@ function applyCustomGfx(saved,fromLoad){
   VC.q=VC_QUALITY[saved.vcq]?saved.vcq:(fallback.vcq||'high'); vcQBase=VC.q;
   SWL.aoWant=typeof saved.ao==='boolean'?saved.ao:!!fallback.ao;
   SWO.refrWant=typeof saved.wd==='boolean'?saved.wd:!!fallback.wd;
+  P4.want=typeof saved.gd==='boolean'?saved.gd:fallback.gd!==false;
   ssrHavePrev=false;
   renderer.setPixelRatio(PR); resize();
   SAVE.gfx=currentGfxSave('custom',false);
@@ -112934,12 +113277,14 @@ function refreshGfxUI(){
   if(aoBtn){const na=(hdrChecked&&!hdrOK)||SWA.failed;aoBtn.classList.toggle('on',SWL.aoWant&&!na);aoBtn.setAttribute('aria-disabled',na?'true':'false');}
   const wdBtn=el('oGfxDepth');
   if(wdBtn){const na=(hdrChecked&&!hdrOK)||SWO.refrFailed||SWO.failed;wdBtn.classList.toggle('on',SWO.refrWant&&!na);wdBtn.setAttribute('aria-disabled',na?'true':'false');}
+  const gdBtn=el('oGfxTerrain');
+  if(gdBtn){gdBtn.classList.toggle('on',P4.want&&P4.on);gdBtn.setAttribute('aria-disabled',P4.on?'false':'true');}
 }
 function applyGfxPreset(name,fromLoad){
   const P=GFX_PRESETS[name]; if(!P)return;
   const pr=gfxDevicePR(P.pr);
   gfxAuto=P.auto; PR=pr; PR_MAX=pr; RENDER_SCALE=P.scale; RENDER_SCALE_BASE=P.scale;
-  postOn=P.post; postAutoOff=false; ssrOn=P.ssr; cascadesOn=P.cascades; TAA.on=!!P.taa; VC.want=!!P.vc; VC.q=P.vcq||'high'; vcQBase=VC.q; SWL.aoWant=!!P.ao; SWO.refrWant=!!P.wd; ssrHavePrev=false;
+  postOn=P.post; postAutoOff=false; ssrOn=P.ssr; cascadesOn=P.cascades; TAA.on=!!P.taa; VC.want=!!P.vc; VC.q=P.vcq||'high'; vcQBase=VC.q; SWL.aoWant=!!P.ao; SWO.refrWant=!!P.wd; P4.want=P.gd!==false; ssrHavePrev=false;
   renderer.setPixelRatio(PR); resize();
   SAVE.gfx=currentGfxSave(name,P.auto);
   nearVegRevision++;
@@ -113426,6 +113771,7 @@ function disposePost(){
 }
 function renderAll(){
   fogUniformsUpdate();
+  p4Frame();
   try{ swDebugCamera(); swFrameUpdate(); }catch(e){}
   updateSunShadow();
   if(!postOK){
@@ -115451,7 +115797,7 @@ function updateDevOverlay(now){
   const p=pl.pos;
   el('devReadout').textContent=
     'FPS      '+fps+'    frame '+(avg?Math.round(avg*1000):'—')+' ms\n'+
-    'Render   scale '+RENDER_SCALE.toFixed(2)+' · PR '+PR.toFixed(2)+' · HDR '+(hdrOK?'an':'aus')+' · TAA '+(taaActive()?'an':'aus')+' · Wolken '+(VC.active?VC_QUALITY[VC.q].label:(VC.failed?'Rückfall':'aus'))+' · Schatten '+(SWU.csm.x?SWC.n+' Kaskaden':'aus')+' · AO '+(SWU.ao.x?'an':'aus')+' · Wasser '+(SWO.u?((SWO.envCloudValid?'Wolkenspiegel':(SWO.envValid?'Himmelsspiegel':'Einheitsfarbe'))+(SWO.refrUsed?' + Tiefe':'')):'Phase 2')+' · Filmlook '+(postOn?'an':'aus')+' · SSR '+(ssrOn?'an':'aus')+'\n'+
+    'Render   scale '+RENDER_SCALE.toFixed(2)+' · PR '+PR.toFixed(2)+' · HDR '+(hdrOK?'an':'aus')+' · TAA '+(taaActive()?'an':'aus')+' · Wolken '+(VC.active?VC_QUALITY[VC.q].label:(VC.failed?'Rückfall':'aus'))+' · Schatten '+(SWU.csm.x?SWC.n+' Kaskaden':'aus')+' · AO '+(SWU.ao.x?'an':'aus')+' · Wasser '+(SWO.u?((SWO.envCloudValid?'Wolkenspiegel':(SWO.envValid?'Himmelsspiegel':'Einheitsfarbe'))+(SWO.refrUsed?' + Tiefe':'')):'Phase 2')+' · Gelände '+(P4U.ero.w?P4U.ero.z+' Erosionsstufen':'glatt')+' · Filmlook '+(postOn?'an':'aus')+' · SSR '+(ssrOn?'an':'aus')+'\n'+
     gpuTimerText()+'\n'+
     'Position '+p.x.toFixed(0)+' / '+p.z.toFixed(0)+' · Höhe '+Math.max(0,p.y).toFixed(0)+' m · '+Math.round(pl.ias*3.6)+' km/h\n'+
     'Airframe '+(PLANES[SAVE.plane||0]?PLANES[SAVE.plane||0].n:'—')+' · '+(AC.airframeLabel||'Basis')+' · I '+Math.round(AC.Ix)+'/'+Math.round(AC.Iy)+'/'+Math.round(AC.Iz)+'\n'+
@@ -115612,7 +115958,7 @@ window.SommerwindRender={
   status:function(){return {hdr:hdrOK,hdrMsaa:hdrMsaaOK,taa:taaActive(),filmlook:!!postOn,postOK:!!postOK,
     vclouds:!!VC.active,vcq:VC.q,vcFailed:!!VC.failed,skyLUT:!!SKY.ok,transparentSplit:VC.split.size,
     lightChunks:!!SWL.chunks,cascades:SWU.csm.x?SWC.n:0,cascadeQ:SWC.q,ao:!!SWU.ao.x,skySH:!!SWU.amb.x,
-    ocean3:!!SWO.u,oceanEnv:!!SWO.envValid,oceanEnvClouds:!!SWO.envCloudValid,oceanDepth:!!SWO.refrUsed,oceanFailed:!!SWO.failed,
+    ocean3:!!SWO.u,oceanEnv:!!SWO.envValid,oceanEnvClouds:!!SWO.envCloudValid,oceanDepth:!!SWO.refrUsed,oceanFailed:!!SWO.failed,terrainP4:!!P4.on,terrainOct:P4U.ero.w?P4U.ero.z:0,
     renderScale:RENDER_SCALE,pixelRatio:PR,preset:(SAVE&&SAVE.gfx&&SAVE.gfx.preset)||null};},
   setTaa:function(on){TAA.on=!!on;buildPost();refreshGfxUI();return taaActive();},
   setClouds:function(on,q){VC.want=!!on;if(q&&VC_QUALITY[q]){VC.q=q;vcQBase=q;}if(VC.want&&!VC.tried)vcBuild();refreshGfxUI();return VC.want;},
