@@ -110899,16 +110899,17 @@ function vcBuildMaterials(){
         if(puv.x<0.0||puv.y<0.0||puv.x>1.0||puv.y>1.0){ oCol=cur; return; }
         vec4 hist=texture(tHist,puv), histD=texture(tHistD,puv);
         // Varianz-Begrenzung über die 3×3-Nachbarschaft des aktuellen Bilds
-        vec4 m1=vec4(0.0), m2=vec4(0.0);
+        vec4 m1=vec4(0.0), m2=vec4(0.0); float om=1e9;
         for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++){
           vec4 s=texture(tCur,vUv+vec2(float(x),float(y))*uTexel);
+          { float dn=texture(tCurD,vUv+vec2(float(x),float(y))*uTexel).y; om=min(om,abs(histD.y-dn)/max(dn,1.0)); }
           m1+=s; m2+=s*s;
         }
         m1/=9.0; vec4 sd=sqrt(max(m2/9.0-m1*m1,0.0));
         hist=clamp(hist,m1-sd*1.6-0.01,m1+sd*1.6+0.01);
         // Verdeckung: hat sich die Szenentiefe hier stark geändert, neu anfangen
         float occl=abs(histD.y-curD.y)/max(curD.y,1.0);
-        float a=occl>0.15?1.0:uAlpha;
+        float a=om>0.15?1.0:(occl>0.15?max(uAlpha,0.3):uAlpha);
         oCol=mix(hist,cur,a);
       }`});
   VC.mComp=new THREE.ShaderMaterial({depthTest:true,depthWrite:true,depthFunc:THREE.AlwaysDepth,
@@ -110947,7 +110948,7 @@ function vcBuildMaterials(){
           depthOut=min(dz,clamp(cp.z/cp.w*0.5+0.5,0.0,1.0));
         }
         gl_FragDepth=depthOut;
-        gl_FragColor=vec4(sc.rgb*cl.a+cl.rgb,1.0);
+        gl_FragColor=vec4(sc.rgb*cl.a+cl.rgb,sc.a);
       }`});
   VC.mShadow=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,
     uniforms:withDensity({uCenter:{value:new THREE.Vector2()},uSize:{value:12000},uCamH:{value:0},
@@ -111184,7 +111185,7 @@ function vcRender(){
   const read=VC.hist[VC.hi], write=VC.hist[1-VC.hi], tu=VC.mTemp.uniforms;
   tu.tCur.value=VC.rtM.textures[0]; tu.tCurD.value=VC.rtM.textures[1];
   tu.tHist.value=read.textures[0]; tu.tHistD.value=read.textures[1];
-  tu.uReproj.value.copy(VC.reproj); tu.uInvProj.value.copy(camera.projectionMatrixInverse);
+  tu.uReproj.value.copy(VC.reproj); tu.uInvProj.value.copy((TAA&&TAA.jittered)?TAA.projInvSave:camera.projectionMatrixInverse);
   tu.uCamRot.value.copy(VC.camRot); tu.uTexel.value.set(1/VC.w,1/VC.h);
   tu.uValid.value=VC.valid?1:0; tu.uAlpha.value=historyAlpha;
   vcRun(VC.mTemp,write,0);
@@ -112538,7 +112539,7 @@ function swoFragmentShader(){ return `
       else if(uSwoF.z<4.5)col=texture2D(tSwoRefr,suv).rgb;
       else col=vec3(F,dEst*0.1,refrOK);
     }
-    gl_FragColor=vec4(col,1.0);
+    gl_FragColor=vec4(col,0.5);   // Wasser-Kennung fürs TAA
   }`; }
 
 /* Baut das Phase-3-Material; null → Aufrufer nimmt das Phase-2-Material */
@@ -114155,7 +114156,9 @@ function woFragmentShader(q){ return `
       else if(woDbg.x<7.5)col=glint;
       else col=vec3(sqrt(cov.x)*4.0,sqrt(cov.y)*4.0,fwl.r);
     }
-    gl_FragColor=vec4(col,1.0);
+    // Alpha 0,5 = Wasser-Kennung fürs TAA (bewegte Oberfläche ohne eigene
+    // Bewegungsvektoren: dort reagiert der Verlauf schneller, siehe mTAA)
+    gl_FragColor=vec4(col,0.5);
   }`; }
 
 /* ---------- CDLOD-Gitter ---------- */
@@ -117296,12 +117299,23 @@ function buildPost(){
               // Ruhige Bildteile sammeln über ~8 Bilder. Schnelle Bewegung
               // (Tiefflug, Kameraschwenk) stützt sich klar aufs aktuelle Bild,
               // damit dünne Teile wie Streben oder Bojen keine Schlieren ziehen.
-              float fb=mix(0.88,0.45,smoothstep(1.0,24.0,velPix));
+              /* Ruhige und mäßig bewegte Bildteile sammeln jetzt über rund
+                 zwölf Bilder; erst schnelle Bewegung stützt sich aufs aktuelle
+                 Bild. Wasser (Alpha 0,5 aus dem Ozean-Shader) bewegt sich ohne
+                 eigene Bewegungsvektoren und bleibt deshalb reaktionsfreudig. */
+              float wat=1.0-step(0.12,abs(texture2D(tCur,cuv).a-0.5));
+              float fb=mix(mix(0.92,0.60,smoothstep(2.0,30.0,velPix)),mix(0.88,0.45,smoothstep(1.0,24.0,velPix)),wat);
               // Helligkeitsgewichtung (Lottes): weicht der Verlauf trotz
               // Clipping stark ab, zählt das aktuelle Bild mehr.
               float dl=abs(center.x-h.x)/max(max(center.x,h.x),0.2);
               float uw=clamp(1.0-dl*3.0,0.0,1.0);
-              fb=min(fb,mix(0.20,0.88,uw*uw));
+              // Die Helligkeitsgewichtung greift nur noch bei schneller
+              // Bewegung voll (Schlieren); sonst ließ sie jede kontrastreiche
+              // Kante — Baum vor Himmel, Wolkenrand, Horizont — flimmern.
+              // Fernes Wasser glitzert ebenfalls ruhiger, nahes bleibt scharf.
+              float wz=1.0/max(1.0-dMin,1e-6);
+              float lumMin=mix(mix(0.85,0.35,smoothstep(6.0,24.0,velPix)),mix(0.20,0.70,smoothstep(120.0,700.0,wz)),wat);
+              fb=min(fb,mix(lumMin,mix(0.92,0.88,wat),uw*uw));
               res=mix(center,h,fb);
             }
             gl_FragColor=vec4(itmap(fromYCoCg(res)),1.0);
@@ -117737,7 +117751,7 @@ function renderFrame(){
   }
   // Nachschärfen: unter TAA leicht gegen die zeitliche Weichheit, sonst nur
   // bei abgesenkter Renderskala (wie bisher im Filmlook).
-  const sharp=taa?clamp(.40+(1-RENDER_SCALE)*1.2,0,.75):clamp((1-RENDER_SCALE)*1.9,0,.6);
+  const sharp=taa?clamp(.55+(1-RENDER_SCALE)*1.2,0,.80):clamp((1-RENDER_SCALE)*1.9,0,.6);
   postFrame=(postFrame+1)%64;
 
   gpuTimerBegin('Komposit');
