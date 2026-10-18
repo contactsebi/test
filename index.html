@@ -89130,6 +89130,43 @@ function buildGrass(){
   grassAccentMesh.instanceMatrix.needsUpdate=true;grassAccentMesh.instanceColor.needsUpdate=true;
   grassAccentMesh.visible=false;scene.add(grassAccentMesh);
 }
+/* Nah-Vegetation stand bisher auf der exakten Formelhöhe heightAt(). Das
+   Gelände wird aber als Gitter mit 40–90 m Maschen gezeichnet; an steilen
+   Küsten liegt das sichtbare Ufer deshalb stellenweise 10–30 m tiefer als die
+   Formel — Gras und Büsche standen dann im Wasser oder schwebten darüber.
+   Hier wird die Höhe des tatsächlich gezeichneten Netzes gelesen (aktive
+   LOD-Stufe der Insel bzw. das feine Heimatbucht-Netz), dreiecksgenau wie
+   die GPU es rastert. */
+function terrainMeshY(geo,lx,lz){
+  const P=geo&&geo.parameters; if(!P||!P.widthSegments||!geo.attributes.position)return NaN;
+  const N=P.widthSegments, st=P.width/N, R=P.width*.5;
+  const u=(lx+R)/st, v=(lz+R)/st;
+  if(!(u>=0&&v>=0&&u<N&&v<N))return NaN;
+  const i=u|0, j=v|0, fu=u-i, fv=v-j, W=N+1, a=geo.attributes.position.array;
+  const ya=a[(j*W+i)*3+1], yd=a[(j*W+i+1)*3+1], yb=a[((j+1)*W+i)*3+1], yc=a[((j+1)*W+i+1)*3+1];
+  return fu+fv<=1 ? ya+(yd-ya)*fu+(yb-ya)*fv : yc+(yb-yc)*(1-fu)+(yd-yc)*(1-fv);
+}
+function nearVegGroundY(is,x,z,h){
+  if(!is)return NaN;
+  const rec=live.get(is.key);
+  if(!rec)return NaN;                                  // Insel noch nicht gebaut: dort ist nichts zu sehen
+  const L=rec.terrainLevels, lod=rec.terrainLOD;
+  if(!L||!lod)return h;
+  const lv=rec.terrainLodLevel===1?L.mid:(rec.terrainLodLevel===2?L.far:L.near);
+  const m=lv&&lv.userData.terrainMeshes&&lv.userData.terrainMeshes[0];
+  if(!m)return h;
+  let y=terrainMeshY(m.geometry,x-lod.position.x-m.position.x,z-lod.position.z-m.position.z);
+  if(rec._bayMesh===undefined){
+    rec._bayMesh=null;
+    for(const mm of rec.meshes)if(mm&&mm.isMesh&&mm.material===bayLandMat){rec._bayMesh=mm;break;}
+  }
+  const bm=rec._bayMesh;
+  if(bm){
+    const by=terrainMeshY(bm.geometry,x-bm.position.x,z-bm.position.z);
+    if(by===by)y=(y===y)?Math.max(y,by):by;
+  }
+  return y;
+}
 function updateGrass(dt,T,px,pz,agl){
   if(!grassMesh)return;
   grassMat.userData.uTime.value=T;
@@ -89165,7 +89202,8 @@ function updateGrass(dt,T,px,pz,agl){
     const h=heightAt(x,z);
     const grassIs=hOwner, grassBiome=grassIs?islandBiome(grassIs):null;
     const grassMax=grassIs&&grassIs.dry<.64?Math.min(720,Math.max(400,grassIs.h*.62)):300;
-    let ok=h>4&&h<grassMax;
+    const gy=nearVegGroundY(grassIs,x,z,h);
+    let ok=h>4&&h<grassMax&&gy>4;
     if(ok&&grassIs&&grassIs.stream){
       const rec=live.get(grassIs.key);
       ok=rec&&rec.streamPath
@@ -89194,7 +89232,7 @@ function updateGrass(dt,T,px,pz,agl){
     const sc=.90+ihash(gx,gz,7309+layer*163)*.72;
     _gq4.setFromAxisAngle(_gUP,ihash(gx,gz,7411+layer*181)*TAU);
     _gs4.set(sc,sc*(1.00+ihash(gx,gz,7517+layer*193)*.40),sc);
-    _gp4.set(x,h,z);
+    _gp4.set(x,gy,z);
     _gm4.compose(_gp4,_gq4,_gs4);
     grassMesh.setMatrixAt(i,_gm4);
     if(grassBiome===BIOME_DRY||grassBiome===BIOME_VOLCANIC)
@@ -89270,7 +89308,8 @@ function updateFlowers(dt,T,px,pz,agl){
     const flowerIs=hOwner, flowerBiome=flowerIs?islandBiome(flowerIs):null;
     const flowerRec=flowerIs?live.get(flowerIs.key):null;
     const flowerMax=flowerIs&&flowerIs.dry<.64?Math.min(540,Math.max(320,flowerIs.h*.50)):250;
-    let ok=h>6&&h<flowerMax;
+    const gy=nearVegGroundY(flowerIs,x,z,h);
+    let ok=h>6&&h<flowerMax&&gy>6;
     if(ok&&flowerIs&&flowerIs.stream){
       ok=flowerRec&&flowerRec.streamPath
         ?!streamBlocked(flowerRec,x-flowerIs.cx,z-flowerIs.cz,8)
@@ -89322,7 +89361,7 @@ function updateFlowers(dt,T,px,pz,agl){
     const sc=1.42+ihash(gx,gz,9413)*1.22;
     _gq4.setFromAxisAngle(_gUP,ihash(gx,gz,9511)*TAU);
     _gs4.set(sc,sc,sc);
-    _gp4.set(x,h,z);
+    _gp4.set(x,gy,z);
     _gm4.compose(_gp4,_gq4,_gs4);
     flowerMesh.setMatrixAt(i,_gm4);
     /* Die Textur trägt die eigentliche Blütenfarbe. instanceColor macht nur
@@ -94049,6 +94088,7 @@ function updateTerrainWorldLOD(px,py,pz){
     }else if(d<f-h){
       level=1;
     }
+    if(rec.terrainLodLevel!==level&&d<span*1.4+700)nearVegRevision++;
     rec.terrainLodLevel=level;
     terrainSetLevelFull(L.near,level===0);
     terrainSetLevelFull(L.mid, level===1);
@@ -94252,6 +94292,7 @@ function stepTask(){
   buildGreen(t,t.rec);
   t.hs=null; t.col=null;
   live.set(is.key,t.rec);
+  if(Math.hypot(is.cx-pl.pos.x,is.cz-pl.pos.z)<t.spanR*1.4+700)nearVegRevision++;
   if(is.rw)runwayLightsDirty=true;
   pending.delete(is.key); tasks.shift();
   return true;
@@ -100039,14 +100080,21 @@ function ringMaterials(){
   ringMatDone=new THREE.MeshBasicMaterial({color:0x9db2c4,transparent:true,opacity:.30,fog:true});
   ringHalo=new THREE.MeshBasicMaterial({color:0xf2d69c,transparent:true,opacity:.10,
     depthWrite:false,fog:true});
-  const c=document.createElement('canvas');c.width=8;c.height=64;
-  const g=c.getContext('2d');
-  const lg=g.createLinearGradient(0,64,0,0);
-  lg.addColorStop(0,'rgba(255,214,132,.55)');
-  lg.addColorStop(.45,'rgba(255,224,160,.20)');
-  lg.addColorStop(1,'rgba(255,235,190,0)');
-  g.fillStyle=lg;g.fillRect(0,0,8,64);
-  shaftTex=new THREE.CanvasTexture(c);
+  /* Lichtsäule: senkrechter Verlauf wie bisher, dazu weich auslaufende
+     Seiten. Die harten Kanten der alten Textur flimmerten in der Ferne. */
+  const SW=32,SH=64,px=new Uint8Array(SW*SH*4);
+  const stops=[[0,255,214,132,.55],[.45,255,224,160,.20],[1,255,235,190,0]];
+  for(let y=0;y<SH;y++){
+    const v=y/(SH-1), s=v<.45?0:1, a=stops[s], b=stops[s+1], f=(v-a[0])/(b[0]-a[0]);
+    for(let x=0;x<SW;x++){
+      const e=Math.min(1,(1-Math.abs((x+.5)/SW*2-1))/.6), side=e*e*(3-2*e), k=(y*SW+x)*4;
+      px[k]=lerp(a[1],b[1],f); px[k+1]=lerp(a[2],b[2],f); px[k+2]=lerp(a[3],b[3],f);
+      px[k+3]=Math.round(255*lerp(a[4],b[4],f)*side);
+    }
+  }
+  shaftTex=new THREE.DataTexture(px,SW,SH,THREE.RGBAFormat);
+  shaftTex.magFilter=THREE.LinearFilter; shaftTex.minFilter=THREE.LinearMipmapLinearFilter;
+  shaftTex.generateMipmaps=true; shaftTex.needsUpdate=true;
 }
 const liveCourses=new Map();
 let activeCourse=null, comboIdx=0, comboT=0, courseT=0, prevPos=new THREE.Vector3();
@@ -100090,15 +100138,32 @@ function spawnCourse(co){
   const sg=G('shaft',()=>{const p=new THREE.PlaneGeometry(RING_R*1.3,1200);
     p.translate(0,550,0);return p;});
   const sm=new THREE.MeshBasicMaterial({map:shaftTex,transparent:true,depthWrite:false,
-    side:THREE.DoubleSide,fog:true,opacity:.9});
-  for(let q=0;q<2;q++){
-    const sh=new THREE.Mesh(sg,sm);
-    sh.position.set(co.rings[0].x,co.rings[0].y-40,co.rings[0].z);
-    sh.rotation.y=q*Math.PI/2; sh.frustumCulled=false;
-    grp.add(sh);
-  }
+    side:THREE.DoubleSide,fog:true,opacity:0});
+  sm.userData.base=.9;
+  // eine zur Kamera gedrehte Fläche statt zwei gekreuzter (deren Kanten
+  // aus der Ferne als flackernde Striche zu sehen waren)
+  const sh=new THREE.Mesh(sg,sm);
+  sh.position.set(co.rings[0].x,co.rings[0].y-40,co.rings[0].z);
+  sh.frustumCulled=false; sh.onBeforeRender=ringShaftBeforeRender;
+  grp.add(sh);
   scene.add(grp);
   liveCourses.set(co.key,{co:co,grp:grp,meshes:meshes,shaftMat:sm});
+}
+const _shaftV2=new THREE.Vector2();
+function ringShaftBeforeRender(r,s,cam,geo,mat){
+  const e=cam.matrixWorld.elements, dx=e[12]-this.position.x, dz=e[14]-this.position.z;
+  const d=Math.max(1,Math.hypot(dx,dz));
+  this.rotation.set(0,Math.atan2(dx,dz),0);
+  // Breite in Pixeln; darunter breiter und entsprechend blasser zeichnen,
+  // damit die Säule nicht unter Pixelgröße fällt und flimmert
+  const rt=r.getRenderTarget(), hPx=rt?rt.height:r.getDrawingBufferSize(_shaftV2).y;
+  const fov=cam.isPerspectiveCamera?cam.fov/Math.max(cam.zoom||1,1e-3):60;
+  const wPx=RING_R*1.3*hPx/(2*Math.tan(fov*Math.PI/360)*d);
+  const k=wPx<7?7/wPx:1;
+  this.scale.set(k,1,1);
+  this.updateMatrixWorld();
+  const base=mat.userData.base!==undefined?mat.userData.base:.9;
+  mat.opacity=base/k*(1-smoothstep(6600,8300,d));
 }
 function dropCourse(rec){ scene.remove(rec.grp); if(rec.shaftMat)rec.shaftMat.dispose(); }
 function refreshCourse(rec){
@@ -100108,7 +100173,7 @@ function refreshCourse(rec){
     if(activeCourse===rec.co) m.material=(i<comboIdx)?ringMatDone:(i===comboIdx?ringMatNext:ringMatSoon);
     else m.material=done?ringMatDone:(i===0?ringMatNext:ringMatSoon);
   }
-  if(rec.shaftMat)rec.shaftMat.opacity=done?.25:.9;
+  if(rec.shaftMat)rec.shaftMat.userData.base=done?.25:.9;
 }
 function updateCourses(px,pz,dt){
   const ci=Math.floor(px/CELL_R), cj=Math.floor(pz/CELL_R);
@@ -113708,6 +113773,10 @@ function woVertexShader(q){ return `
     float d=distance(vec3(loc.x,0.0,loc.y),-uMeshRel);
     float mk=clamp((d-0.8*R)/(0.2*R),0.0,1.0);
     loc-=fract(g*0.5)*2.0*spacing*mk;
+    // Fester, kreisrunder Rand knapp innerhalb der Himmelskugel: keine
+    // wechselnde Knoten-Silhouette am Horizont, kein Tiefenstreit mit dem Himmel
+    vec2 cr=loc+uMeshRel.xz; float cl=length(cr);
+    if(woLod.w>0.0&&cl>woLod.w) loc-=cr*(1.0-woLod.w/cl);
     float eff=spacing*(1.0+mk);
     vec3 D=vec3(0.0);
     for(int c=0;c<WO_C;c++){
@@ -114222,7 +114291,7 @@ function woOceanMaterial(eng,q){
     woDisp:{value:eng.dispTex()},woDeriv:{value:eng.derivTex()},woMom:{value:eng.momTex()},
     woFoam0:{value:eng.foamTex(0)},woFoam1:{value:eng.foamTex(1)},woFoamTex:{value:eng.foamDetail()},
     woL:{value:L8},woOff:{value:offs},
-    woLod:{value:V4(WO_RANGE_K*q.leaf,q.grid,eng.N,0)},
+    woLod:{value:V4(WO_RANGE_K*q.leaf,q.grid,eng.N,woEdgeRadius(q))},
     woFoamOff:{value:V4()},woFoamP:{value:V4(eng.foamL[0],eng.foamL[1],0,0)},
     woFoamQ:{value:V4(0.48,2.5,1,0)},woWind:{value:V4(1,0,6.5,0)},
     woRough:{value:V4(0.0024,0.0035,0,0)},woSun:{value:V4(5.0,0.06,2.6,1.6)},
@@ -114247,12 +114316,24 @@ function woOceanMaterial(eng,q){
   mat.polygonOffset=true; mat.polygonOffsetFactor=2.5; mat.polygonOffsetUnits=6;
   return mat;
 }
+/* Rand des Ozeans: höchstens die Knotenreichweite und 95 % des Himmelskugel-
+   Radius. Dahinter zeichnete der Himmel (ohne Tiefenschreiben) bisher je nach
+   Zeichenreihenfolge über das Wasser oder das Wasser mit seiner kantigen
+   Knotengrenze über den Himmel — beides flackerte am Horizont. */
+function woEdgeRadius(q){
+  let skyR=20000;
+  try{ if(typeof sky!=='undefined'&&sky&&sky.geometry&&sky.geometry.parameters&&sky.geometry.parameters.radius)skyR=sky.geometry.parameters.radius; }catch(e){}
+  return Math.min(q.maxDist,skyR*0.95);
+}
 function woFr(v){ return v-Math.floor(v); }
 function woBeforeRender(r,scn,cam){
   const u=WO.u; if(!u||!WO.mesh||!WO.eng)return;
   const M=WO.mesh.position, cp=cam.position, e=WO.eng;
   u.uMeshRel.value.set(M.x-cp.x,M.y-cp.y,M.z-cp.z);
   u.uMeshW.value.set(M.x,M.z);
+  // Kreisrand nie weiter draußen, als die Knotenauswahl in dieser Höhe sicher abdeckt
+  { const S=WO_SEL, hy=Math.max(0,cp.y-S.HB), r2=S.maxDist*S.maxDist-hy*hy;
+    u.woLod.value.w=Math.max(500,Math.min(WO.edgeR||S.maxDist,Math.sqrt(Math.max(r2,0))*0.995)); }
   const off=u.woOff.value;
   for(let c=0;c<e.C;c++)off[c].set(swoFract(M.x,e.cascL[c]),swoFract(M.z,e.cascL[c]));
   u.uOffT.value.set(swoFract(M.x,64)*64,swoFract(M.z,64)*64,0,0);
@@ -114310,7 +114391,7 @@ function woBuild(tierName){
     mesh.frustumCulled=false;
     mesh.renderOrder=-1;
     woSelSetup(q);
-    WO.eng=eng; WO.mesh=mesh; WO.mat=mat; WO.u=mat.uniforms; WO.qual=q; WO.tier=q.name;
+    WO.eng=eng; WO.mesh=mesh; WO.mat=mat; WO.u=mat.uniforms; WO.qual=q; WO.tier=q.name; WO.edgeR=woEdgeRadius(q);
     // Ozean-2.0-Anschlüsse (Himmelskarte, Tiefe, Kielwasser, Boote, Debug)
     SWO.mat=mat; SWO.u=mat.uniforms; SWO.eng=eng; SWO.qual=q;
     swoAttach(mesh,mat);
@@ -116625,6 +116706,7 @@ function p5MgUpdate(px,pz,agl){
     let x=(gx+.5+(p5Hash(gx,gz,5)-.5)*.80)*S,z=(gz+.5+(p5Hash(gx,gz,6)-.5)*.80)*S;
     const q=p5MgKind(x,z,gx,gz);if(!q)continue;
     if(q.k===2){x=(gx+.5)*S;z=(gz+.5)*S;q.h=heightAt(x,z);}
+    {const gy=nearVegGroundY(q.is,x,z,q.h);if(!(gy>5.5))continue;q.h=gy;}
     const K=P5M.kinds[q.k];if(!K.free.length)continue;
     const idx=K.free.pop();sl.k=q.k;sl.idx=idx;
     const r1=p5Hash(gx,gz,7),r2=p5Hash(gx,gz,8);
