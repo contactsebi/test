@@ -2118,7 +2118,7 @@
 
   /* ============================================================
      AAA HARBOR COMMERCE STATION · Sommerwind 3D
-     Markt → Ware → Deal → Laden/Verkaufen.
+     Markt → Ware → Deal → Kaufen/Verkaufen.
      Economy-Logik bleibt unverändert; dies ist die Präsentationsschicht.
      ============================================================ */
   #tradeWrap{
@@ -2255,6 +2255,8 @@
   #tradeBoard button:focus-visible{outline:2px solid #ffe0a4;outline-offset:2px}
 
   #tradeWorkspace{min-height:0;overflow:hidden}
+  #tradeHead{grid-row:1}#tradePulse{grid-row:2}#tradeSummary{grid-row:3}#tradeTabs{grid-row:4}
+  #tradeWorkspace{grid-row:5}#tradeControls{grid-row:6}
   .tradePane{display:none;height:100%;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   .tradePane.on{display:block}
   #tradeMain{
@@ -4374,6 +4376,11 @@
   .wsHangarStageName{display:block;color:#9edbc9;font-size:6px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
   @media(max-width:720px){.careerPillars{grid-template-columns:repeat(2,minmax(0,1fr))}.careerGoalGrid{grid-template-columns:1fr}.careerProfileGrid{grid-template-columns:1fr}.careerNetwork{grid-template-columns:repeat(2,minmax(0,1fr))}.fleetGrid,.careerChains{grid-template-columns:1fr}}
 
+
+  /* Hafenbörse: Kaufen/Verkaufen gut lesbar, Kaufen klar als Schaltfläche */
+  #tradeBoard .tradeDealButton span{font-size:10px!important;letter-spacing:.03em}
+  #tradeBoard .tradeDealButton small{font-size:7.5px!important}
+  #tradeBoard .tradeDealButton.buy:not(.blocked){border-color:rgba(242,202,127,.42)!important}
 </style>
 </head>
 <body>
@@ -5117,7 +5124,7 @@
           <aside id="tradeDealPanel" aria-label="Ausgewählte Ware">
             <div id="tradeSelectedCard"></div>
             <section id="tradeImpactPanel" class="tradePanel">
-              <div class="tradePanelTitle"><span>Aircraft Impact</span><small>Vorschau vor dem Laden</small></div>
+              <div class="tradePanelTitle"><span>Aircraft Impact</span><small>Vorschau vor dem Kauf</small></div>
               <div id="tradePerformance"></div>
             </section>
           </aside>
@@ -102892,12 +102899,14 @@ function focusOverlayAction(id){
 }
 function bindTap(id,fn){
   const n=el(id); if(!n)return;
-  let lastT=0;
+  const at=bindTap.at||(bindTap.at=Object.create(null));
   const go=function(e){
-    const now=Date.now();
+    const now=Date.now(), lastT=at[id]||0;
     e.stopPropagation(); e.preventDefault();
-    if(n.disabled||n.getAttribute('aria-disabled')==='true'||now-lastT<300)return;
-    lastT=now;
+    if(n.disabled||n.getAttribute('aria-disabled')==='true')return;
+    // der click nach einem pointerdown gehört zum selben Tipp
+    if(now-lastT<(e.type==='click'?1000:300))return;
+    at[id]=now;
     fn();
   };
   n.addEventListener('pointerdown',go);
@@ -105501,7 +105510,7 @@ function sanitizeSaveGfx(src){
   if(isFinite(+src.pr))out.pr=clamp(+src.pr,1,2);
   if(isFinite(+src.scale))out.scale=clamp(+src.scale,.8,1);
   for(const k of ['post','motion','ssr','cascades','taa','vc','ao','wd','gd','pd','vg'])if(typeof src[k]==='boolean')out[k]=src[k];
-  if(['low','medium','high'].includes(src.vcq))out.vcq=src.vcq;
+  if(['low','mobile','medium','high'].includes(src.vcq))out.vcq=src.vcq;
   return out;
 }
 function sanitizeCareerRegionRewards(src){
@@ -108337,7 +108346,7 @@ function tradeBuy(g,qty){
   qty=clamp(Math.floor(qty||1),0,Math.min(m.stock[g],space,Math.floor(SAVE.coins/Math.max(1,unit))));if(qty<=0){const ms=missionCargoSlotsUsed();tradeMessage(m.stock[g]<=0?'Ware ausverkauft.':space<=0?(ms?'Frachtraum voll · '+ms+' Platz'+(ms===1?'':'e')+' für Missionsfracht reserviert.':'Frachtraum voll.'):'Nicht genügend Münzen.',true);return;}if(!tradeBeginAtomic())return;
   tradeUndo=tradeSnapshot(is,'Einkauf');const total=unit*qty;SAVE.coins-=total;
   for(let i=0;i<qty;i++)SAVE.cargo.push({g:g,kind:'plain',paid:unit,origin:is.key,originName:is.name});careerTradeArcBuy(is);SAVE.lastCareerCargo={kind:'loaded',count:qty,name:GOODS[g].n,port:is.name,t:Math.floor(+SAVE.log.sec||0)};
-  tradeApplyMarket(is,g,qty,true);logAdd('tradeBought',qty);applyLoadout();updateCargoVisual();saveSoon();tradeWorldFeedback(is,qty,true);sfxRing(.34);haptic(8);tradeMessage(qty+' × '+GOODS[g].n+' geladen · −'+total+' Münzen');renderTradeBoard();
+  tradeApplyMarket(is,g,qty,true);logAdd('tradeBought',qty);applyLoadout();updateCargoVisual();saveSoon();tradeWorldFeedback(is,qty,true);sfxRing(.34);haptic(8);tradeMessage(qty+' × '+GOODS[g].n+' gekauft · −'+total+' Münzen');renderTradeBoard();
   requestAnimationFrame(function(){playTradeTransactionVisual('buy',qty,total,g);});
 }
 function tradeSell(g,qty){
@@ -108514,10 +108523,10 @@ function updateTradeDealPreview(){
         '<button type="button" class="tradeMax" id="tradeMax" '+(primaryMax>0?'':'disabled')+'>MAX</button>'+
       '</div>'+
       '<div class="tradeDealButtons">'+
-        '<button type="button" class="tradeDealButton buy '+(!sellPrimary&&canBuy?'primary ':'')+(!canBuy?'blocked':'')+'" id="tradeBuy" aria-disabled="'+(!canBuy?'true':'false')+'"><span>'+(canBuy?(buyQty<tradeQty?buyQty+' laden':'Laden'):'Laden nicht möglich')+' · '+(unitBuy*(canBuy?buyQty:tradeQty))+' ◈</span><small>'+(canBuy?'Kasse danach '+afterBuy+' ◈'+(buyLimit?' · '+buyLimit:''):escapeHTML(buyReason||'nicht verfügbar'))+'</small></button>'+
+        '<button type="button" class="tradeDealButton buy '+(!sellPrimary&&canBuy?'primary ':'')+(!canBuy?'blocked':'')+'" id="tradeBuy" aria-disabled="'+(!canBuy?'true':'false')+'"><span>'+(canBuy?(buyQty<tradeQty?buyQty+' kaufen':'Kaufen'):'Kaufen')+' · '+(unitBuy*(canBuy?buyQty:tradeQty))+' ◈</span><small>'+(canBuy?'Kasse danach '+afterBuy+' ◈'+(buyLimit?' · '+buyLimit:''):escapeHTML(buyReason||'nicht verfügbar'))+'</small></button>'+
         '<button type="button" class="tradeDealButton sell '+(sellPrimary&&canSell?'primary':'')+'" id="tradeSell" '+(canSell?'':'disabled')+'><span>Verkaufen · +'+sale.revenue+' ◈</span><small>'+(canSell&&sellQty<tradeQty?'nur '+sellQty+' an Bord · ':'')+'Kasse danach '+afterSell+' ◈ · Bilanz '+(saleProfit>=0?'+':'')+saleProfit+'</small></button>'+
       '</div>'+
-      '<div class="tradeTradeNote"><b>'+unitBuy+' ◈</b> je Kiste · maximal '+maxBuy+' laden · '+maxSell+' an Bord'+(sale.local?' · lokale Ware erhält nur Rücknahmepreis':'')+'. Aircraft Impact aktualisiert sich direkt mit der gewählten Menge.</div>';
+      '<div class="tradeTradeNote"><b>'+unitBuy+' ◈</b> je Kiste · maximal '+maxBuy+' kaufen · '+maxSell+' an Bord'+(sale.local?' · lokale Ware erhält nur Rücknahmepreis':'')+'. Aircraft Impact aktualisiert sich direkt mit der gewählten Menge.</div>';
 
     bindTap('tradeMinus',function(){tradeQty=Math.max(1,tradeQty-1);updateTradeDealPreview();});
     bindTap('tradePlus',function(){tradeQty=Math.min(overallMax,tradeQty+1);updateTradeDealPreview();});
@@ -110520,6 +110529,7 @@ const VC_TL=6;                                   // Ebene für den Transparenz-D
 const VC_QUALITY={
   high:  {div:2,steps:96,light:6,detail:1,label:'hoch'},
   medium:{div:2,steps:72,light:5,detail:1,label:'mittel'},
+  mobile:{div:3,steps:48,light:4,detail:0,label:'mobil'},
   low:   {div:4,steps:48,light:4,detail:0,label:'niedrig'}
 };
 const VC={want:true,ok:false,tried:false,failed:false,q:'high',
@@ -110878,27 +110888,43 @@ function vcBuildMaterials(){
       void main(){
         vec4 cur=texture(tCur,vUv), curD=texture(tCurD,vUv);
         oDep=curD;
-        if(uValid<0.5){ oCol=cur; return; }
+        /* 3×3-Nachbarschaft: Streuung für die Begrenzung des Verlaufs und ein
+           tiefenbewusst gefiltertes aktuelles Bild. Das Raymarching-Rauschen
+           (Startversatz je Pixel) zeigte sich sonst überall dort als grobes
+           Gittermuster, wo es keinen Verlauf gibt: am Bildrand beim Kurven,
+           hinter Silhouetten und bei schnellen Schwenks. */
+        vec4 m1=vec4(0.0), m2=vec4(0.0), cf=vec4(0.0); float wf=0.0;
+        float dn[9];
+        for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++){
+          vec2 o=vec2(float(x),float(y))*uTexel;
+          vec4 s=texture(tCur,vUv+o);
+          float d=texture(tCurD,vUv+o).y;
+          dn[(x+1)*3+(y+1)]=d;
+          m1+=s; m2+=s*s;
+          float w=(x==0?2.0:1.0)*(y==0?2.0:1.0)*step(abs(d-curD.y),0.08*max(curD.y,1.0));
+          cf+=s*w; wf+=w;
+        }
+        cf/=max(wf,1e-4);
+        m1/=9.0; vec4 sd=sqrt(max(m2/9.0-m1*m1,0.0));
+        if(uValid<0.5){ oCol=cf; return; }
         vec4 vp=uInvProj*vec4(vUv*2.0-1.0,1.0,1.0);
         vec3 dir=normalize(uCamRot*normalize(vp.xyz/vp.w));
         vec4 pc=uReproj*vec4(dir*min(curD.x,curD.y),1.0);
-        if(pc.w<=0.0){ oCol=cur; return; }
+        if(pc.w<=0.0){ oCol=cf; return; }
         vec2 puv=pc.xy/pc.w*0.5+0.5;
-        if(puv.x<0.0||puv.y<0.0||puv.x>1.0||puv.y>1.0){ oCol=cur; return; }
+        if(puv.x<0.0||puv.y<0.0||puv.x>1.0||puv.y>1.0){ oCol=cf; return; }
         vec4 hist=texture(tHist,puv), histD=texture(tHistD,puv);
-        // Varianz-Begrenzung über die 3×3-Nachbarschaft des aktuellen Bilds
-        vec4 m1=vec4(0.0), m2=vec4(0.0); float om=1e9;
-        for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++){
-          vec4 s=texture(tCur,vUv+vec2(float(x),float(y))*uTexel);
-          { float dn=texture(tCurD,vUv+vec2(float(x),float(y))*uTexel).y; om=min(om,abs(histD.y-dn)/max(dn,1.0)); }
-          m1+=s; m2+=s*s;
-        }
-        m1/=9.0; vec4 sd=sqrt(max(m2/9.0-m1*m1,0.0));
-        hist=clamp(hist,m1-sd*1.6-0.01,m1+sd*1.6+0.01);
-        // Verdeckung: hat sich die Szenentiefe hier stark geändert, neu anfangen
+        // Verdeckung gegen die ganze Nachbarschaft (TAA-Versatz an Silhouetten)
+        float om=1e9;
+        for(int k=0;k<9;k++)om=min(om,abs(histD.y-dn[k])/max(dn[k],1.0));
+        // bei Bewegung enger begrenzen: keine Geisterränder hinter Wolken
+        float kc=mix(1.6,1.1,smoothstep(0.2,0.5,uAlpha));
+        hist=clamp(hist,m1-sd*kc-0.01,m1+sd*kc+0.01);
         float occl=abs(histD.y-curD.y)/max(curD.y,1.0);
         float a=om>0.15?1.0:(occl>0.15?max(uAlpha,0.3):uAlpha);
-        oCol=mix(hist,cur,a);
+        // ruhig: überwiegend das scharfe Einzelbild; bewegt/neu: gefiltert
+        vec4 src=mix(cur,cf,clamp((a-0.12)/0.4,0.25,1.0));
+        oCol=mix(hist,src,a);
       }`});
   VC.mComp=new THREE.ShaderMaterial({depthTest:true,depthWrite:true,depthFunc:THREE.AlwaysDepth,
     uniforms:{tScene:{value:null},tDepth:{value:null},tCloud:{value:null},tCloudD:{value:null},
@@ -110923,6 +110949,13 @@ function vcBuildMaterials(){
         vec4 bw=vec4((1.0-f.x)*(1.0-f.y),f.x*(1.0-f.y),(1.0-f.x)*f.y,f.x*f.y);
         vec4 zd=abs(vec4(z00,z10,z01,z11)-vz)/max(vz,1.0);
         vec4 w=bw/(zd*12.0+0.02)+1e-5;
+        {
+          vec4 cdv=vec4(texture2D(tCloudD,b).x,texture2D(tCloudD,b+vec2(o.x,0.0)).x,texture2D(tCloudD,b+vec2(0.0,o.y)).x,texture2D(tCloudD,b+o).x);
+          float gate=1.0-smoothstep(1500.0,3500.0,vz);
+          vec4 mk=gate*smoothstep(vec4(vz*1.25+60.0),vec4(vz*1.8+200.0),cdv);
+          const vec4 NOC=vec4(0.0,0.0,0.0,1.0);
+          c00=mix(c00,NOC,mk.x); c10=mix(c10,NOC,mk.y); c01=mix(c01,NOC,mk.z); c11=mix(c11,NOC,mk.w);
+        }
         vec4 cl=(c00*w.x+c10*w.y+c01*w.z+c11*w.w)/dot(w,vec4(1.0));
         /* Dichte Wolke: ihre Entfernung geht in den Tiefenpuffer. Dann
            verdecken Wolken dahinterliegende Effekte richtig, und das TAA
@@ -111130,7 +111163,7 @@ function vcHistoryAlpha(moved,turn){
   // Ruhige Kamera: glätten. Bei Parallaxe/Schwenks schneller das aktuelle
   // Bild übernehmen; sonst wird Wolkenhistorie noch einmal durch TAA gezogen.
   const motion=Math.max(clamp(moved/24,0,1),clamp((1-clamp(turn,0,1))/.001,0,1));
-  return lerp(.18,.55,motion);
+  return lerp(.12,.50,motion);
 }
 function vcRender(){
   vcEnsureTargets();
@@ -111208,7 +111241,7 @@ function vcFail(e){
 }
 /* FPS-Regler (nur Mittel-Preset): Wolkenqualität zuerst senken, zuletzt
    wieder anheben — höchstens bis zur Stufe des Presets. */
-const VC_Q_ORDER=['low','medium','high'];
+const VC_Q_ORDER=['low','mobile','medium','high'];
 let vcQBase='high';
 function vcStepDown(){
   if(!VC.active)return false;
@@ -115410,7 +115443,7 @@ function p6SyncHoles(){
 
 /* ---------- Hitzeflimmern im Kompositpass ---------- */
 const P6_HEAT_GLSL=`
-uniform vec4 p6HeatA,p6HeatB,p6HeatT;
+uniform vec4 p6HeatA,p6HeatB,p6HeatT; uniform sampler2D p6D;
 vec2 p6HeatOfs(vec2 uv){
   vec2 o=vec2(0.0);
   for(int i=0;i<2;i++){
@@ -115422,7 +115455,17 @@ vec2 p6HeatOfs(vec2 uv){
     vec2 q=uv*vec2(p6HeatT.y,1.0)/H.z*1.6; float t=p6HeatT.x;
     o+=vec2(sin(q.y*5.0-t*12.0+sin(q.x*2.3+t*3.7)*1.4),cos(q.x*4.4+t*9.0+sin(q.y*3.1-t*5.3)*1.2))*m;
   }
-  return o*0.0016;
+  o*=0.0016;
+  if(p6HeatT.w>0.5&&dot(o,o)>0.0){
+    // auch die Nachbarschaft prüfen: der Rand ums Flugboot bleibt ruhig,
+    // statt zwischen verzerrt/unverzerrt hin- und herzuspringen
+    const float p6r=0.0045;
+    float p6z=min(texture2D(p6D,uv).x,texture2D(p6D,uv+o).x);
+    p6z=min(p6z,min(min(texture2D(p6D,uv+vec2(p6r,0.0)).x,texture2D(p6D,uv-vec2(p6r,0.0)).x),
+                    min(texture2D(p6D,uv+vec2(0.0,p6r)).x,texture2D(p6D,uv-vec2(0.0,p6r)).x)));
+    o*=step(p6HeatT.z,p6z);
+  }
+  return o;
 }
 `;
 function p6PostPatch(m){
@@ -115431,7 +115474,7 @@ function p6PostPatch(m){
   if(i<0||fs.indexOf(key,i+1)>=0){m.userData.p6=true;return;}
   const head=fs.slice(0,i), body=fs.slice(i+key.length);
   m.fragmentShader=head+P6_HEAT_GLSL+key+'\n vec2 p6Uv=vUv+p6HeatOfs(vUv);'+body.replace(/\bvUv\b/g,'p6Uv');
-  m.uniforms.p6HeatA={value:P6U.heatA}; m.uniforms.p6HeatB={value:P6U.heatB}; m.uniforms.p6HeatT={value:P6U.heatT};
+  m.uniforms.p6HeatA={value:P6U.heatA}; m.uniforms.p6HeatB={value:P6U.heatB}; m.uniforms.p6HeatT={value:P6U.heatT}; m.uniforms.p6D={value:null};
   m.userData.p6=true; m.needsUpdate=true;
 }
 const _p6h=new THREE.Vector3(),_p6h2=new THREE.Vector3(),_p6r=new THREE.Vector3();
@@ -115443,6 +115486,10 @@ function p6HeatUpdate(on){
   const amt=clamp((pl.thr-.15)/.55,0,1)*(pl.alive?1:0)*(1-clamp((camera.position.distanceTo(pl.pos)-60)/90,0,1));
   if(amt<.01)return;
   P6U.heatT.x=T; P6U.heatT.y=Math.max(.2,camera.aspect);
+  // Tiefenschwelle knapp hinter dem Flugboot (Fenstertiefe 0…1)
+  _p6h.copy(pl.pos).applyMatrix4(camera.matrixWorldInverse);
+  _p6h.set(0,0,-Math.max(camera.near*2,-_p6h.z+8)).applyMatrix4(camera.projectionMatrix);
+  P6U.heatT.z=_p6h.z*.5+.5;
   _p6r.set(1,0,0).applyQuaternion(camera.quaternion);
   const tgt=[P6U.heatA,P6U.heatB];
   for(let s=0;s<2;s++){
@@ -117109,7 +117156,7 @@ const GFX_PRESETS={
   low:{label:'Niedrig',note:'Maximale Ruhe für ältere Geräte. Spiegelung, Schatten, Posteffekte und TAA sind aus.',pr:1,scale:.8,post:false,ssr:false,cascades:false,auto:false,taa:false,vc:false,vcq:'low',ao:false,wd:false,gd:false,pd:false,vg:false},
   medium:{label:'Mittel',note:'Empfohlener Standard: klare Inseln, sanfte Wasserspiegelung, stabile Bildrate.'+(IS_MOBILE?'':' TAA glättet Kanten; volumetrische Wolken in mittlerer Qualität.'),pr:1,scale:1,post:false,ssr:true,cascades:false,auto:true,taa:!IS_MOBILE,vc:!IS_MOBILE,vcq:'medium',ao:false,wd:false,gd:true,pd:true,vg:true},
   high:{label:'Hoch',note:'Mehr Bildtiefe und Filmlook, TAA-Kantenglättung, volumetrische Wolken, weite Schatten und klares Wasser mit Tiefe. Für aktuelle Desktop- und stärkere Mobilgeräte.',pr:1.25,scale:1,post:true,ssr:true,cascades:true,auto:false,taa:true,vc:true,vcq:IS_MOBILE?'low':'high',ao:!IS_MOBILE,wd:!IS_MOBILE,gd:true,pd:true,vg:true},
-  ultra:{label:'Ultra',note:'Standard: hohe Auflösung, HDR-Bild mit TAA-Kantenglättung, volumetrische Wolken, Wasserspiegelung und -tiefe, weite Schatten für Gelände, Häuser und Bäume sowie Umgebungsverdeckung; der Filmlook (Bildbearbeitung) bleibt aus.',pr:1.5,scale:1,post:false,ssr:true,cascades:true,auto:false,taa:true,vc:true,vcq:IS_MOBILE?'low':'high',ao:!IS_MOBILE,wd:!IS_MOBILE,gd:true,pd:true,vg:true}
+  ultra:{label:'Ultra',note:'Standard: hohe Auflösung, HDR-Bild mit TAA-Kantenglättung, volumetrische Wolken, Wasserspiegelung und -tiefe, weite Schatten für Gelände, Häuser und Bäume sowie Umgebungsverdeckung; der Filmlook (Bildbearbeitung) bleibt aus.',pr:1.5,scale:1,post:false,ssr:true,cascades:true,auto:false,taa:true,vc:true,vcq:IS_MOBILE?'mobile':'high',ao:!IS_MOBILE,wd:!IS_MOBILE,gd:true,pd:true,vg:true}
 };
 function gfxDevicePR(cap){return Math.min(cap,Math.max(1,window.devicePixelRatio||1));}
 function gfxFullResolution(){return RENDER_SCALE>=.999&&PR>=gfxDevicePR(2)-.001;}
@@ -117849,6 +117896,10 @@ function renderFrame(){
   postFrame=(postFrame+1)%64;
 
   gpuTimerBegin('Komposit');
+  if(typeof P6U!=='undefined'){
+    for(const pm of [mComp,mFinal])if(pm&&pm.uniforms&&pm.uniforms.p6D)pm.uniforms.p6D.value=sceneDepth||null;
+    P6U.heatT.w=sceneDepth?1:0;
+  }
   if(postOn){
     pQuad.material=mComp;
     mComp.uniforms.tS.value=hdrTex; mComp.uniforms.tB.value=rtA.texture;
