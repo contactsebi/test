@@ -95451,12 +95451,10 @@ function updateShipEncounter(s,px,pz){
   if(s.hailed||s.type===SHIP_CARGO)return;
   s.hailed=true;
   if(s.type===SHIP_WARSHIP){
-    say(WARSHIP_LINES[(Math.random()*WARSHIP_LINES.length)|0]);
     return;
   }
   // Passagierschiff
   if(SAVE.passenger){
-    say('Man winkt dir vom Passagierschiff zu — an Bord ist schon jemand bei dir.');
     return;
   }
   const idx=n2PassengerPick(Math.floor(Math.random()*PASSENGERS.length));
@@ -95793,7 +95791,7 @@ function updateTownMoment(dt,rec,life,bd){
   const inside=bd<620*620,arrived=inside&&(pl.ground||pl.water)&&pl.alive,approach=bd<650*650&&pl.alive&&!pl.ground&&!pl.water&&pl.pos.y-heightAt(pl.pos.x,pl.pos.z)<95;
   if(approach&&life.service&&!folkMoment)beginTownMoment(rec,life,airDamageWorst()>.32?'damage':'repair');if(arrived&&!folkArrivalInside&&folkArrivalKey!==rec.is.key){folkArrivalKey=rec.is.key;beginTownMoment(rec,life);}folkArrivalInside=arrived;
   if(bd>1050*1050){folkArrivalInside=false;if(folkArrivalKey===rec.is.key)folkArrivalKey=null;if(folkMoment&&folkMoment.key===rec.is.key)folkMoment=null;}if(!folkMoment||folkMoment.key!==rec.is.key)return;folkMoment.t+=dt;updateHeroSignatureMoment(rec,folkMoment);
-  if(!folkMoment.heard&&folkMoment.t>1.25&&!ST.paused&&!document.body.classList.contains('talking')){folkMoment.heard=true;say(folkMoment.text);if(folkMoment.heroFirst){const L=islandLifeFor(rec.is,true);if(L&&!L.heroSeen){L.heroSeen=true;L.moments=clamp((L.moments||0)+1,0,9999);L.lastMoment=clamp(+SAVE.log.sec||0,0,1e9);saveSoon();}}}
+  if(!folkMoment.heard&&folkMoment.t>1.25&&!ST.paused&&!document.body.classList.contains('talking')){folkMoment.heard=true;if(folkMoment.heroFirst){const L=islandLifeFor(rec.is,true);if(L&&!L.heroSeen){L.heroSeen=true;L.moments=clamp((L.moments||0)+1,0,9999);L.lastMoment=clamp(+SAVE.log.sec||0,0,1e9);saveSoon();}}}
 }
 function hideFolkDetail(mesh,i){_fd.position.set(0,-9999,0);_fd.scale.set(1,1,1);_fd.updateMatrix();mesh.setMatrixAt(i,_fd.matrix);}
 function harborUpdateCitizenProxy(o,life,T){if(!o||!o.harborCitizen)return;if(o.routeDone){o.pause=Math.max(0,o.pause);if(o.pause<=0)harborProxyPlan(o,o.harborRec,o.harborCitizen,life,false);}else if(o.sim&&o.sim.phase!==life.phase&&o.actionT<=0)harborProxyPlan(o,o.harborRec,o.harborCitizen,life,true);}
@@ -96629,7 +96627,7 @@ function updateWeatherWarning(dt){
   else if(app){const fc=weatherForecastAt(pl.pos.x,pl.pos.z,Math.min(600,app.eta));title=WEATHER_LABEL[app.cell.type]+' nähert sich';detail=(app.distance/1000).toFixed(1)+' km · etwa '+Math.max(1,Math.round(app.eta/60))+' min · '+fc.classification.detail;level=app.cell.type==='storm'?3:1;cell=app.cell;}
   else{const fp=flightPlan();if(fp.active&&fp.next<fp.waypoints.length){const st=flightPlanStats();if(st.weatherRisk>.42){title='Wetter auf der Route';detail=st.weather+' · Ausweichhafen prüfen';level=st.weatherRisk>.7?3:1;}}}
   if(!title)return;
-  if(cell&&level>=2&&!weatherWarned.has(cell.id)&&!pl.ground&&!pl.water){weatherWarned.add(cell.id);haptic(level>=3?[18,35,28]:14);sfxAlarm();showRadioCall(COAST_GUARD_CHARACTER,WEATHER_LABEL[cell.type]+' auf deinem Kurs. '+detail,2,{callsign:'WETTERFUNK',duration:5});}
+  if(cell&&level>=2&&!weatherWarned.has(cell.id)&&!pl.ground&&!pl.water){weatherWarned.add(cell.id);}
 }
 function updateWeatherCells(dt){
   if(!ST.running)return;
@@ -96649,7 +96647,6 @@ function updateWeatherCells(dt){
   const severe=weatherLocal.risk>.48;
   if(weatherWasSevere&&!severe&&weatherLocal.risk<.17){
     weatherCalmT=42;
-    if(pl.alive&&!pl.ground&&!pl.water)showRadioCall(COAST_GUARD_CHARACTER,'Front passiert. Hinter dir klart es auf; die Luft wird wieder ruhig.',1,{callsign:'WETTERFUNK',duration:4});
   }
   weatherWasSevere=severe;if(weatherCalmT>0)weatherCalmT=Math.max(0,weatherCalmT-dt);
   weatherSaveT-=dt;if(weatherSaveT<=0){weatherSaveT=30;saveSoon();}updateWeatherWarning(dt);
@@ -96801,8 +96798,6 @@ function tornadoGeo(){
 }
 function spawnStorm(){
   const cell=weatherCreateCell('storm',pl.pos.x,pl.pos.z,true);cell.age=Math.min(cell.age,45);weatherSyncVisuals();
-  say('Eine Gewitterwolke zieht auf — Vorsicht vor Fallwind.');
-  worldNarrative('storm','warning',{key:Math.floor((SAVE.log.sec||0)/60)},{priority:3});
   return cell;
 }
 function weatherSyncVisuals(){
@@ -97015,7 +97010,6 @@ function startEvent(T){
     m.position.set(volc.cx,cy,volc.cz); m.frustumCulled=false;
     scene.add(m); EV.obj=m;
     EV.data.y=cy;
-    evSay('Der Berg raucht · '+volc.name);
   }else if(k==='zeppelin'){
     EV.dur=280;
     const m=new THREE.Mesh(G('zepp',zeppGeo),new THREE.MeshLambertMaterial({vertexColors:true}));
@@ -97024,7 +97018,6 @@ function startEvent(T){
     const hd=Math.random()*TAU;
     m.rotation.y=hd; m.frustumCulled=false;
     scene.add(m); EV.obj=m; EV.data={vx:Math.sin(hd)*-14,vz:Math.cos(hd)*-14};
-    evSay('Ein Luftschiff zieht vorbei');
   }else if(k==='whales'){
     EV.dur=180;
     const sp=seaSpot(pl.pos.x,pl.pos.z,1200,3800);
@@ -97036,7 +97029,6 @@ function startEvent(T){
       w.z=sp.z+Math.sin(dir)*i*170+Math.sin(dir+1.57)*((i%2)*90-45);
       w.dir=dir; w.init=true; w.ph=i*.35;
     }
-    evSay('Die Wale ziehen vorbei');
   }else if(k==='rainbow'){
     EV.dur=80;
     const grp=new THREE.Group();
@@ -97048,7 +97040,6 @@ function startEvent(T){
       grp.add(m);
     }
     grp.frustumCulled=false; scene.add(grp); EV.obj=grp;
-    evSay('Ein Regenbogen');
   }else if(k==='distress'){
     EV.dur=200;
     const sp=seaSpot(pl.pos.x,pl.pos.z,1800,4200);
@@ -97085,7 +97076,6 @@ function startEvent(T){
     scene.add(m); EV.obj=m;
     const hd=Math.random()*TAU;
     EV.data={x:sp.x,z:sp.z,r:r,vx:Math.cos(hd)*4,vz:Math.sin(hd)*4};
-    evSay('Eine Wasserhose dreht sich draußen auf dem Meer');
   }else if(k==='sandstorm'){
     EV.dur=180+Math.random()*80;
     const spanR=desert.r*(desert.ax?Math.max(desert.ax,desert.az):1);
@@ -97095,7 +97085,6 @@ function startEvent(T){
     m.scale.setScalar(spanR/1000); m.frustumCulled=false;
     scene.add(m); EV.obj=m;
     EV.data={is:desert,x:desert.cx,z:desert.cz,r:spanR};
-    evSay('Über '+desert.name+' steht eine Wand aus Sand');
   }else if(k==='meteor'){
     EV.dur=220;
     const frags=[];
@@ -97128,7 +97117,6 @@ function startEvent(T){
     }
     grp.frustumCulled=false; scene.add(grp); EV.obj=grp; EV.data={south:south};
     logAdd('auroras',1);
-    evSay('Ein Leuchten steht am Himmel, weit im '+(south?'Süden':'Norden'));
   }else{                                              // 'raid'
     EV.dur=240;
     const n=Math.min(raiders.length,3+((Math.random()*3)|0));
@@ -105899,10 +105887,10 @@ function sanitizeNarrativePending(src){
 }
 function sanitizePrefs(src){
   const out={sound:true,music:true,hud:true,cam:0,sens:1.15,invPitch:false,invRoll:false,fbw:true,assist:true,coord:true,weatherHud:true,
-    audioMaster:.8,audioVehicle:.85,audioWorld:.75,audioSfx:.9,audioMusic:.65,audioDyn:'normal',audioMono:false,audioVisual:true,
+    audioMaster:.8,audioVehicle:.85,audioWorld:.75,audioSfx:.9,audioMusic:.65,audioDyn:'normal',audioMono:false,audioVisual:true,audioCues:false,
     dialogSpeed:'normal',dialogAuto:false,dialogRadio:true,dialogLog:true};
   if(!src||typeof src!=='object'||Array.isArray(src))return out;
-  for(const k of ['sound','music','hud','invPitch','invRoll','fbw','assist','coord','weatherHud','audioMono','audioVisual','dialogAuto','dialogRadio','dialogLog'])
+  for(const k of ['sound','music','hud','invPitch','invRoll','fbw','assist','coord','weatherHud','audioMono','audioVisual','audioCues','dialogAuto','dialogRadio','dialogLog'])
     if(typeof src[k]==='boolean')out[k]=src[k];
   if(isFinite(+src.cam))out.cam=clamp(Math.floor(+src.cam),0,2);
   if(isFinite(+src.sens))out.sens=clamp(+src.sens,.5,2.2);
@@ -106360,7 +106348,7 @@ let AU=null,engOsc=[],engGain=null,engLP=null,tremGain=null,tremLFO=null,
     busVehicle=null,busWorld=null,busSfx=null,busUI=null,busDialog=null,busMusic=null,busCombat=null,
     noiseBuf=null,soundOn=true,audioWantsRun=false,
     audioHarbor=null,audioHarborScan=0;
-const audioMix={master:.8,vehicle:.85,world:.75,sfx:.9,music:.65,dyn:'normal',mono:false,visual:true};
+const audioMix={master:.8,vehicle:.85,world:.75,sfx:.9,music:.65,dyn:'normal',mono:false,visual:false};
 let audioVoices=[],audioPeakVoices=0,audioDuck=0,audioCueUntil=0,audioRemoteScan=0,audioRemoteAir=null,audioRemoteShip=null;
 const AUDIO_VOICE_LIMIT=28;
 function audioSetParam(param,value,tau){
@@ -106887,7 +106875,7 @@ function sfxThunder(vol,delay,x,y,z){
   const g2=AU.createGain();
   g2.gain.setValueAtTime(v*.6,t); g2.gain.exponentialRampToValueAtTime(.0006,t+.35);
   o.connect(g2);if(pan)g2.connect(pan);else g2.connect(busWorld);o.start(t);o.stop(t+.4);
-  audioVoice(src,[lp,g,pan],4.3,4);audioVoice(o,[g2],.42,4);if(pos)audioCritical('Donner',pos);
+  audioVoice(src,[lp,g,pan],4.3,4);audioVoice(o,[g2],.42,4);
 }
 /* Münz-Klingeln: ein helles Doppelton-"Cha-ching", knapp und unaufdringlich,
    damit es auch bei häufigen kleinen Belohnungen nicht nervt. */
@@ -106952,7 +106940,7 @@ function applyPreferences(src){
   ST.invPitch=p.invPitch; ST.invRoll=p.invRoll;
   fbwOn=p.fbw; assistOn=p.assist; coordOn=p.coord;
   audioMix.master=p.audioMaster;audioMix.vehicle=p.audioVehicle;audioMix.world=p.audioWorld;
-  audioMix.sfx=p.audioSfx;audioMix.music=p.audioMusic;audioMix.dyn=p.audioDyn;audioMix.mono=p.audioMono;audioMix.visual=p.audioVisual;
+  audioMix.sfx=p.audioSfx;audioMix.music=p.audioMusic;audioMix.dyn=p.audioDyn;audioMix.mono=p.audioMono;audioMix.visual=p.audioCues===true;
   dialogPrefs.speed=p.dialogSpeed;dialogPrefs.auto=p.dialogAuto;dialogPrefs.radio=p.dialogRadio;dialogPrefs.log=p.dialogLog;
   el('hud').classList.toggle('off',!ST.hud);
   el('bSound').style.opacity=soundOn?1:.4;
@@ -106971,7 +106959,7 @@ function rememberPreferences(){
     sens:clamp(ST.sens,.5,2.2),invPitch:!!ST.invPitch,invRoll:!!ST.invRoll,
     fbw:!!fbwOn,assist:!!assistOn,coord:!!coordOn,weatherHud:SAVE.prefs.weatherHud!==false,
     audioMaster:audioMix.master,audioVehicle:audioMix.vehicle,audioWorld:audioMix.world,audioSfx:audioMix.sfx,audioMusic:audioMix.music,
-    audioDyn:audioMix.dyn,audioMono:!!audioMix.mono,audioVisual:!!audioMix.visual,
+    audioDyn:audioMix.dyn,audioMono:!!audioMix.mono,audioVisual:!!audioMix.visual,audioCues:!!audioMix.visual,
     dialogSpeed:dialogPrefs.speed,dialogAuto:!!dialogPrefs.auto,dialogRadio:!!dialogPrefs.radio,dialogLog:!!dialogPrefs.log};
   saveSoon();
 }
@@ -115783,17 +115771,21 @@ function p5CrownAttr(g,opt){
       vP5Fade=1.0;
       if(uP5>.5){
         if(p5lod>.5)vP5Fade=p5InstFade();
-        if(p5cap>.5){
+        if(vP5Fade<=0.001)transformed=vec3(0.0);
+        else if(p5cap>.5){
+          /* Deck-Card: Blickrichtung von der Stammachse in Höhe der Card, für
+             alle Ecken einer Card gleich. Vorher wurde je Ecke entschieden und
+             einzelne Ecken auf den Stammfuß gefaltet: aus der Nähe (beim
+             Durchfliegen) entstanden lange grüne Splitter. */
           #ifdef USE_INSTANCING
             vec3 p5cn=normalize(mat3(modelMatrix)*(mat3(instanceMatrix)*normal));
-            vec3 p5cw=(modelMatrix*instanceMatrix*vec4(transformed,1.0)).xyz;
+            vec3 p5cw=(modelMatrix*instanceMatrix*vec4(0.0,transformed.y,0.0,1.0)).xyz;
           #else
             vec3 p5cn=normalize(mat3(modelMatrix)*normal);
-            vec3 p5cw=(modelMatrix*vec4(transformed,1.0)).xyz;
+            vec3 p5cw=(modelMatrix*vec4(0.0,transformed.y,0.0,1.0)).xyz;
           #endif
           vP5Fade*=smoothstep(.22,.48,dot(p5cn,normalize(cameraPosition-p5cw)));
         }
-        if(vP5Fade<=0.001)transformed=vec3(0.0);
       }`)
       .replace('#include <project_vertex>',`#include <project_vertex>
       #ifdef USE_INSTANCING
@@ -115802,7 +115794,7 @@ function p5CrownAttr(g,opt){
         vP5WP=(modelMatrix*vec4(transformed,1.0)).xyz;
       #endif`);
     fs=fs.replace('#include <common>','#include <common>\nuniform float uP5,uP5Frame;\nvarying float vP5AO;\nvarying vec3 vP5WP;\nvarying float vP5Fade;\n  float p5Dither(float t){return fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))+t*.7548));}')
-      .replace('#include <map_fragment>','if(vP5Fade<.5)discard;\n#include <map_fragment>')
+      .replace('#include <map_fragment>','{float p5f=vP5Fade*smoothstep(2.5,8.0,length(vViewPosition));if(p5f<.999&&p5f<p5Dither(uP5Frame))discard;}\n#include <map_fragment>')
       .replace('#include <normal_fragment_begin>','#include <normal_fragment_begin>\n      if(uP5>.5){normal*=faceDirection;nonPerturbedNormal=normal;}')
       .replace('#include <lights_fragment_end>',`#include <lights_fragment_end>
       if(uP5>.5){
@@ -115849,7 +115841,7 @@ function p5CrownAttr(g,opt){
       }
       `+a);
     fs=fs.replace('#include <common>','#include <common>\nuniform float uP5,uP5Frame;\nvarying float vP5Y;\nvarying float vP5Fade;\n  float p5Dither(float t){return fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))+t*.7548));}')
-      .replace('#include <color_fragment>','if(vP5Fade<.5)discard;\n#include <color_fragment>')
+      .replace('#include <color_fragment>','if(vP5Fade<.5)discard;\n{float p5t=smoothstep(1.5,5.0,length(vViewPosition));if(p5t<.999&&p5t<p5Dither(uP5Frame))discard;}\n#include <color_fragment>')
       .replace('#include <color_fragment>',`#include <color_fragment>
       /* Phase 5 · Stammfuß: Erde, Moos, Verdeckung */
       diffuseColor.rgb*=mix(vec3(1.0),mix(.50,1.0,smoothstep(.0,1.7,vP5Y))*mix(vec3(.86,.92,.82),vec3(1.0),smoothstep(.2,1.2,vP5Y)),uP5);`);
@@ -116186,7 +116178,7 @@ function p5ImpMaterial(S){
     shader.uniforms.uImpN=U.n;shader.uniforms.uP5Frame=P5U.frame;shader.uniforms.uP5=P5U.on;shader.uniforms.uImpKind=U.kind;shader.uniforms.uP5Lod=P5U.lod;shader.uniforms.uImpFpx=U.fpx;shader.uniforms.uImpMaxLod=U.maxLod;
     shader.uniforms.uPaintSunDir={value:sunDir};shader.uniforms.uPaintSunCol={value:C.sun};
     shader.vertexShader=shader.vertexShader
-      .replace('#include <common>','#include <common>\nuniform vec4 uImpRect,uImpC,uP5Lod;\nuniform float uImpN,uImpKind;\nvarying float vImpFade;\nvarying vec2 vImpUv;\nvarying vec2 vImpG;\nvarying vec3 vImpR0;\nvarying vec3 vImpR1;\nvarying vec3 vImpR2;\nvarying vec3 vImpWP;\nvarying float vImpS;\n'+P5_IMP_GLSL)
+      .replace('#include <common>','#include <common>\nattribute float p5gk;\nuniform vec4 uImpRect,uImpC,uP5Lod;\nuniform float uImpN,uImpKind;\nvarying float vImpFade;\nvarying vec2 vImpUv;\nvarying vec2 vImpG;\nvarying vec3 vImpR0;\nvarying vec3 vImpR1;\nvarying vec3 vImpR2;\nvarying vec3 vImpWP;\nvarying float vImpS;\n'+P5_IMP_GLSL)
       .replace('#include <begin_vertex>',`#include <begin_vertex>
         #ifdef USE_INSTANCING
           mat3 p5im=mat3(instanceMatrix);
@@ -116213,7 +116205,7 @@ function p5ImpMaterial(S){
           #endif
           float p5dc=distance(p5iw,cameraPosition);
           float p5key=fract(sin(dot(p5iw.xz,vec2(.1031,.11369)))*43758.5453);
-          vImpFade=uImpKind>.5?step(mix(uP5Lod.z,uP5Lod.z+uP5Lod.w,p5key),p5dc):step(mix(uP5Lod.x-uP5Lod.y,uP5Lod.x,p5key),p5dc);
+          vImpFade=uImpKind>.5?step(mix(uP5Lod.z,uP5Lod.z+uP5Lod.w,p5gk),p5dc):step(mix(uP5Lod.x-uP5Lod.y,uP5Lod.x,p5key),p5dc);
           if(vImpFade<=0.001)transformed=vec3(0.0);
         }`)
       .replace('#include <project_vertex>',`#include <project_vertex>
@@ -116328,7 +116320,7 @@ function p5GroveImpostor(t,rec,fm,fc,ctr,rad,biome,old){
   /* Die alte Waldmasse war auf Fernsicht gebaut (Bäume bis 60 m). Als
      gemalter Hain erscheint sie jetzt schon ab gut 500 m, deshalb kleinere,
      dafür doppelt so viele Haine – gleiche Deckung, glaubhafte Baumgrößen. */
-  const mats=[],cols=[],pos=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),o=new THREE.Object3D();
+  const mats=[],cols=[],groves=[],pos=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),o=new THREE.Object3D();
   for(let i=0;i<fm.length;i++){
     fm[i].decompose(pos,q,sc);
     const c=fc[i].clone().lerp(_p5White,.58);
@@ -116338,12 +116330,114 @@ function p5GroveImpostor(t,rec,fm,fc,ctr,rad,biome,old){
       o.position.set(x,h+.5,z);o.rotation.set(0,p5Hash(x,z,17)*TAU,0);
       const f=.60+p5Hash(x,z,19)*.10;o.scale.set(sc.x*f,sc.y*f,sc.z*f);o.updateMatrix();
       mats.push(o.matrix.clone());cols.push(c);
+      groves.push({id:++GROVE_NEAR.ids,x:ctr.x+x,y:h+.5,z:ctr.z+z,ry:o.rotation.y,sx:sc.x*f,sy:sc.y*f,sz:sc.z*f,
+        k:p5Hash(x,z,23),tint:paintedInstanceTint(fc[i]),kind:kind,gy:null});
     }
   }
   const m=addInstanced(p5ImpQuad(),mats,cols,ctr,rad,rec,S.mat);
-  if(m){m.userData.vegType='pine';m.userData.vegLOD='forestMass';m.userData.p5imp=true;m.castShadow=false;m.receiveShadow=true;m.visible=false;P5.stats.imp+=mats.length;}
+  if(m){m.userData.vegType='pine';m.userData.vegLOD='forestMass';m.userData.p5imp=true;m.castShadow=false;m.receiveShadow=true;m.visible=false;P5.stats.imp+=mats.length;
+    const gk=new Float32Array(groves.length);for(let i=0;i<groves.length;i++)gk[i]=groves[i].k;
+    m.geometry.setAttribute('p5gk',new THREE.InstancedBufferAttribute(gk,1));
+    rec.p5groves={mesh:m,list:groves,span:rad};}
   return m;
 }
+/* Nahbereich der Haine: Ein Hain ist in der Ferne ein gebackenes Bild aus
+   neun gemalten Bäumen (P5_GROVE). Kommt die Kamera näher als seine
+   Wechselentfernung, blendet der Shader ihn aus — und genau dann stehen
+   hier dieselben neun Bäume als echte Geometrie. Ein gemeinsamer Pool je
+   Baumart; neu belegt wird nur, wenn ein Hain die Grenze überschreitet. */
+const GROVE_NEAR={ids:0,meshes:null,cap:0,sig:'',slots:null,err:null,n:0,
+  W:new THREE.Matrix4(),L:new THREE.Matrix4(),M:new THREE.Matrix4(),q:new THREE.Quaternion(),
+  v:new THREE.Vector3(),s:new THREE.Vector3(),up:new THREE.Vector3(0,1,0),white:new THREE.Color(1,1,1),act:[]};
+function groveNearSlots(){
+  if(GROVE_NEAR.slots)return GROVE_NEAR.slots;
+  const H={pine:13.5,olive:9.6,tall:16.5,oak:10.5},out={pine:[],broad:[]};
+  for(const kind of ['pine','broad'])for(let i=0;i<P5_GROVE.length;i++){
+    const q=P5_GROVE[i];
+    const type=kind==='pine'?(i%3===1?'pine':'tall'):(i%3===1?'olive':(i%4===3?'oak':'pine'));
+    const v=i&1,s=q[2]/H[type]*q[3]*1.04;
+    out[kind].push({key:type+'_'+v,x:q[0],z:q[1],ry:q[4],s:s,sy:s*(.94+.12*(i%3)/2)});
+  }
+  return GROVE_NEAR.slots=out;
+}
+function groveNearBuild(){
+  if(GROVE_NEAR.meshes)return GROVE_NEAR.meshes;
+  const cap=(typeof IS_MOBILE!=='undefined'&&IS_MOBILE)?360:1500,M={},z=new THREE.Matrix4().makeScale(0,0,0);
+  for(const type of ['pine','tall','olive','oak'])for(let v=0;v<2;v++){
+    const trunk=new THREE.InstancedMesh(G('paint_trunk_'+type+'_v'+v,function(){return paintedTreeTrunkGeo(type,v);}),paintedTrunkMat,cap);
+    const crown=new THREE.InstancedMesh(G('paint_crown_'+type+'_v'+v,function(){return paintedTreeFoliageGeo(type,v);}),paintedFoliageMat,cap);
+    for(const m of [trunk,crown]){
+      m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      for(let i=0;i<cap;i++){m.setMatrixAt(i,z);m.setColorAt(i,GROVE_NEAR.white);}
+      m.instanceColor.setUsage(THREE.DynamicDrawUsage);
+      m.count=0;m.frustumCulled=false;m.castShadow=false;m.receiveShadow=true;
+      m.userData.vegType=type;m.userData.groveNear=true;scene.add(m);
+    }
+    crown.receiveShadow=false;
+    M[type+'_'+v]={trunk:trunk,crown:crown,n:0};
+  }
+  GROVE_NEAR.cap=cap;
+  return GROVE_NEAR.meshes=M;
+}
+function groveNearClear(){
+  const M=GROVE_NEAR.meshes;if(!M)return;
+  for(const k in M){M[k].n=0;M[k].trunk.count=0;M[k].crown.count=0;}
+  GROVE_NEAR.sig='';GROVE_NEAR.n=0;
+}
+function groveNearUpdate(cam){
+  if(!p5ImpOn()){if(GROVE_NEAR.sig!=='')groveNearClear();return;}
+  const e=cam.matrixWorld.elements,cx=e[12],cy=e[13],cz=e[14],lz=P5U.lod.value.z,lw=P5U.lod.value.w,reach=lz+lw;
+  const act=GROVE_NEAR.act;act.length=0;let sig='';
+  for(const rec of live.values()){
+    const R=rec.p5groves;if(!R||!R.mesh||!R.mesh.visible||!R.mesh.parent)continue;
+    const ix=rec.is.cx-cx,iz=rec.is.cz-cz,lim=R.span+reach;if(ix*ix+iz*iz>lim*lim)continue;
+    const L=R.list;
+    for(let i=0;i<L.length;i++){
+      const g=L[i],dx=g.x-cx,dy=g.y-cy,dz=g.z-cz,t=lz+lw*g.k;
+      if(dx*dx+dy*dy+dz*dz<t*t){act.push(g);act.push(rec);sig+=g.id+',';}
+    }
+  }
+  if(sig===GROVE_NEAR.sig)return;
+  GROVE_NEAR.sig=sig;
+  const M=groveNearBuild(),slots=groveNearSlots(),Q=GROVE_NEAR,cap=Q.cap;
+  for(const k in M)M[k].n=0;
+  for(let a=0;a<act.length;a+=2){
+    const g=act[a],rec=act[a+1],list=slots[g.kind];
+    Q.W.compose(Q.v.set(g.x,g.y,g.z),Q.q.setFromAxisAngle(Q.up,g.ry),Q.s.set(g.sx,g.sy,g.sz));
+    if(!g.gy){
+      // Bodenhöhe je Baum einmal bestimmen: sichtbares Gelände, sonst Formel
+      g.gy=new Float32Array(list.length);
+      for(let i=0;i<list.length;i++){
+        const sl=list[i];Q.L.compose(Q.v.set(sl.x,0,sl.z),Q.q.setFromAxisAngle(Q.up,sl.ry),Q.s.set(sl.s,sl.sy,sl.s));
+        Q.M.multiplyMatrices(Q.W,Q.L);const x=Q.M.elements[12],z=Q.M.elements[14],h=heightAt(x,z);
+        let y=NaN;try{y=nearVegGroundY(rec.is,x,z,h);}catch(err){}
+        g.gy[i]=(y===y?Math.min(y,h+1.5):h)-.35;
+      }
+    }
+    for(let i=0;i<list.length;i++){
+      const sl=list[i],E=M[sl.key];if(!E||E.n>=cap)continue;
+      Q.L.compose(Q.v.set(sl.x,0,sl.z),Q.q.setFromAxisAngle(Q.up,sl.ry),Q.s.set(sl.s,sl.sy,sl.s));
+      Q.M.multiplyMatrices(Q.W,Q.L);Q.M.elements[13]=g.gy[i];
+      E.trunk.setMatrixAt(E.n,Q.M);E.crown.setMatrixAt(E.n,Q.M);
+      E.trunk.setColorAt(E.n,Q.white);E.crown.setColorAt(E.n,g.tint);
+      E.n++;
+    }
+  }
+  let total=0;
+  for(const k in M){
+    const E=M[k];E.trunk.count=E.n;E.crown.count=E.n;total+=E.n;
+    if(E.n){for(const m of [E.trunk,E.crown]){m.instanceMatrix.needsUpdate=true;m.instanceColor.needsUpdate=true;}}
+  }
+  Q.n=total;
+}
+(function groveNearHook(){
+  const prev=scene.onBeforeRender;
+  scene.onBeforeRender=function(r,s,cam){
+    if(prev)prev.apply(this,arguments);
+    if(cam!==camera)return;
+    try{groveNearUpdate(cam);}catch(err){GROVE_NEAR.err=String((err&&err.message)||err);}
+  };
+})();
 function p5ImpOn(){return p5Active()&&P5I.ready;}
 
 /* ============================================================
