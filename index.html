@@ -4416,9 +4416,14 @@
   @media (max-height:560px) and (orientation:landscape) and (min-width:800px){
     html.is-mobile #coach{right:calc(max(8px,env(safe-area-inset-right)) + 238px)!important;top:max(8px,env(safe-area-inset-top))!important}
   }
-  body:has(#coach.on) #place{opacity:0!important}
+  @media not all and (max-height:560px) and (orientation:landscape){body:has(#coach.on) #place{opacity:0!important}}
+  /* Querformat: Ortsname/Meldungen unter die Flugstunden-Karte statt weg */
+  @media (max-height:560px) and (orientation:landscape){body:has(#coach.on) #place{top:calc(max(8px,env(safe-area-inset-top)) + 150px)!important}}
   /* Ortsname und Zurufe nicht durch Dialoge und Funksprüche scheinen lassen */
-  body:has(#talk.on) #place,body:has(#bottleTalk.on) #place,body.radioActive #place{opacity:0!important}
+  body:has(#talk.on) #place,body:has(#bottleTalk.on) #place{opacity:0!important}
+  /* Funkspruch aktiv: Meldungen (Landepunkte, Warnrufe) unter die Funkkarte
+     statt sie für die ganze Dauer des Funkspruchs zu verschlucken */
+  html body.radioActive #place,html body.radioActive #place.event{top:max(24%,188px)!important}
   body:has(#talk.on) #paxTalk,body:has(#bottleTalk.on) #paxTalk,body:has(#storyFull.on) #paxTalk{visibility:hidden!important}
   /* Hafengespräch offen: Flugstunden-Karte und Münzanzeige lagen halb darunter */
   body:has(#talk.on) #coach,body:has(#talk.on) #purse,body:has(#bottleTalk.on) #coach{visibility:hidden!important}
@@ -4433,6 +4438,63 @@
   }
   html.is-mobile body.talking :is(#thr,#fire,#stick,#tilt){display:none}
   @media (max-height:560px) and (orientation:landscape){html.is-mobile body:has(#talk.on) #hud{visibility:hidden}}
+
+  @media (orientation:landscape){
+    #missionToast{left:50%!important;right:auto!important;width:min(390px,calc(100vw - 380px))!important;
+      bottom:max(10px,env(safe-area-inset-bottom))!important;transform:translate3d(-50%,6px,0)!important}
+    #missionToast.on{transform:translate3d(-50%,0,0)!important}
+  }
+  @media (max-height:560px) and (orientation:landscape){
+    body:has(#flightNav.on) #missionToast{bottom:calc(max(10px,env(safe-area-inset-bottom)) + 60px)!important}
+    /* Flugplan-Leiste und Zuruf-Karte belegen dann beide Plätze unten mittig */
+    body:has(#flightNav.on):has(#paxTalk.on) #missionToast{visibility:hidden!important;pointer-events:none!important}
+  }
+  body:has(#talk.on) #missionToast,body.storyOpen #missionToast,body.storyFullOpen #missionToast,body.tradeOpen #missionToast,
+  body.mapOpen #missionToast,body.recoveryOpen #missionToast,body.photoMode #missionToast,body:has(#veil:not(.gone)) #missionToast{
+    visibility:hidden!important;pointer-events:none!important}
+  html.is-mobile body:has(#talk.on) #radioCall,body.storyOpen #radioCall,body.storyFullOpen #radioCall{visibility:hidden!important}
+  /* body.storyOpen #talk{display:none} wird von der späteren
+     #talk{display:block!important}-Regel ausgehebelt — Gesprächskarte schien
+     beim Einblenden einer Story hinter der Dialogkarte durch. */
+  body.storyOpen #talk,body.storyFullOpen #talk{visibility:hidden!important;pointer-events:none!important}
+
+  /* Zustandszeile im Flugdaten-Panel (wie Treibstoff) */
+  #dmg{position:relative!important;left:auto!important;top:auto!important;
+    width:calc(100% - 6px)!important;height:auto!important;min-height:30px;margin:5px 3px 0!important;padding:6px 8px!important;
+    display:none!important;grid-template-columns:20px minmax(0,1fr) auto;grid-template-rows:auto 3px;align-items:center;column-gap:7px;row-gap:5px;
+    border-radius:11px;border:1px solid rgba(240,181,111,.20);
+    background:linear-gradient(145deg,rgba(36,33,30,.90),rgba(14,22,27,.97));
+    box-shadow:0 7px 20px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.025);
+    opacity:1!important;transform:none!important;pointer-events:none;color:#f6f2e7;font-family:var(--sw-ui-font,Inter,system-ui,sans-serif)}
+  #dmg.on{display:grid!important}
+  #dmg .fuelGlyph{color:#f0b56f;border-color:rgba(240,181,111,.22);background:rgba(240,181,111,.065)}
+  #dmgPct{color:#ffe2b8;font-size:9px;font-weight:760;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
+  #dmgTrack{grid-column:2/4;width:100%;height:3px!important;border-radius:99px!important;overflow:hidden;background:rgba(226,239,234,.10)!important}
+  #dmgFill{height:100%;border-radius:99px;background:linear-gradient(90deg,#d98a52,#f0c176)!important;transition:width .25s ease}
+  #dmg.critical{border-color:rgba(233,130,105,.46)}
+  #dmg.critical .fuelGlyph,#dmg.critical #dmgPct{color:#ffb39f}
+  #dmg.critical #dmgFill{background:linear-gradient(90deg,#d96455,#ee937a)!important}
+  @media (hover:none), (pointer:coarse){
+    html.is-mobile #dmg{width:calc(100% - 14px)!important;margin:5px 7px 0!important;min-height:31px;border-radius:12px}
+  }
+  @media (hover:none) and (max-height:560px), (pointer:coarse) and (max-height:560px){
+    html.is-mobile #dmg{min-height:28px;padding-top:5px!important;padding-bottom:5px!important}
+  }
+
+  @media (max-height:560px) and (orientation:landscape){
+    #missionCompleteBanner{left:calc(max(8px,env(safe-area-inset-left)) + 172px)!important;right:calc(max(8px,env(safe-area-inset-right)) + 238px)!important;
+      width:auto!important;top:max(8px,env(safe-area-inset-top))!important;transform:translate3d(0,-10px,0)!important}
+    #missionCompleteBanner.on{transform:none!important}
+    html.is-mobile body:has(#talk.on) :is(#cargoBar,#paxInfo,#warn,#missionObjectiveHUD){visibility:hidden!important}
+    /* Flugstunde: Funkkarte lag halb unter der Flugstunden-Karte (steht im Funkprotokoll) */
+    html.is-mobile body:has(#coach.on) #radioCall{visibility:hidden!important}
+  }
+  body.storyOpen #missionCompleteBanner,body.storyFullOpen #missionCompleteBanner,body:has(#talk.on) #missionCompleteBanner,
+  body.mapOpen #missionCompleteBanner,body.tradeOpen #missionCompleteBanner,body:has(#veil:not(.gone)) #missionCompleteBanner,
+  body:has(#coach.on) #missionCompleteBanner{visibility:hidden!important}
+  /* Hafenbörse offen: Flugplan-Leiste, Zielzeiger und Meldungen schienen durch */
+  body.tradeOpen :is(#flightNav,#routePtr,#taskPtr,#storyPtr,#firstPtr,#ringPtr,#foePtr,#place,#warn,#cargoBar,#paxInfo,#missionObjectiveHUD,#coach,#circusTimer){visibility:hidden!important}
+  @media (max-width:920px){html.is-mobile body.storyOpen :is(#cargoBar,#paxInfo,#warn,#missionObjectiveHUD){visibility:hidden!important}}
 </style>
 </head>
 <body>
@@ -4462,6 +4524,14 @@
       <span class="fuelLabel">Treibstoff</span>
       <b id="fuelPct">100%</b>
       <div id="fuelTrack"><div id="fuelFill"></div></div>
+    </div>
+    <div id="dmg" role="status" aria-label="Zustand der Maschine">
+      <span class="fuelGlyph" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 3.5 19 6v5.2c0 4.3-2.9 7.7-7 9.3-4.1-1.6-7-5-7-9.3V6l7-2.5Z"/><path d="M9.2 12.2l1.9 1.9 3.7-4"/></svg>
+      </span>
+      <span class="fuelLabel">Zustand</span>
+      <b id="dmgPct">100%</b>
+      <div id="dmgTrack"><div id="dmgFill"></div></div>
     </div>
   </div>
   <div id="purse">
@@ -4547,7 +4617,6 @@
   </section>
   <div id="coachSteerCue">Links wischen zum Steuern</div>
   <div id="audioCue" aria-live="polite"></div>
-  <div id="dmg"><span class="mIco">♥</span><div id="dmgTrack"><div id="dmgFill"></div></div></div>
   <div id="cargoBar" class="sh"></div>
   <div id="place" class="sh"><div class="n"></div><div class="r"></div></div>
 </div>
@@ -95967,10 +96036,9 @@ function updateHomeArrival(dt){
     if(Math.random()<.6)setTimeout(function(){ if(AU)sfxGull(.10,homeIs&&{x:homeIs.cx+80,y:32,z:homeIs.cz-45}); },260);
   }
   if(homeArrival.t>4.2){
+    // Kein Versetzen an den Steg: gewassert wird ohnehin im Hafenbecken,
+    // anlegen kann man dort selbst.
     homeArrival.active=false;
-    // Nach der Inszenierung wie beim Spawn am Steg liegen — nicht dort
-    // treiben bleiben, wo die Wasserung zufällig endete.
-    if(homeIs&&homeIs.hb)placeInBay(homeIs);
   }
 }
 function updateHarborComms(dt){
@@ -99929,7 +99997,8 @@ function flight(dt,t){
       sfxSplash(.4); say(wg+' gewassert · '+wsc+' Punkte'+(harbour?' · im Hafen':'')+(wpay?'':' (Prämie gesperrt)'));
       checkTask('water',{key:wIs?wIs.key:null,x:pl.pos.x,z:pl.pos.z,score:wsc}); saveSoon();
       checkAchievements(); checkPostcardNear(pl.pos.x,pl.pos.z);
-      if(atHome)triggerHomeArrival(); else maybeTipForeignLanding(wIs);
+      if(atHome){ if(homeIs.hb&&bayUnder(pl.pos.x,pl.pos.z)===homeIs)triggerHomeArrival(); }
+      else maybeTipForeignLanding(wIs);
     } else bail(overSea);
   }
   if(pl.grace>0)pl.grace-=dt;
@@ -102546,7 +102615,8 @@ function updateMissionDebrief(dt){
   if(missionDebriefCooldown>0)missionDebriefCooldown-=dt;
   if(missionToastT>0){
     const reportSafe=missionDebriefSafe();el('missionToastOpen').disabled=!reportSafe;
-    if(reportSafe)missionToastT-=dt;else missionToastT=Math.max(missionToastT,8);
+    const toastSeen=getComputedStyle(el('missionToast')).visibility!=='hidden';
+    if(reportSafe&&toastSeen)missionToastT-=dt;else missionToastT=Math.max(missionToastT,toastSeen?8:4);
     if(missionToastT<=0){el('missionToast').classList.remove('on');missionToastEntry=null;}
   }
   if(missionDebriefOpen){
@@ -110117,6 +110187,26 @@ let coinShow=0,lastCoins=-1,lastPips='',lastThrA11y=-1;
 const _hudLast=Object.create(null);
 function hudSet(id,v){v=String(v);if(_hudLast[id]===v)return;_hudLast[id]=v;const n=el(id);if(n)n.textContent=v;}
 function hudOpacity(n,key,v){v=+(+v).toFixed(3);if(_hudLast[key]===v)return;_hudLast[key]=v;n.style.opacity=v;}
+const SW_LEFTCOL=['warn','paxInfo','cargoBar','missionObjectiveHUD','coachSteerCue'];
+let swLeftColAt=0;
+function swLayoutLeftColumn(force){
+  const now=performance.now();if(!force&&now-swLeftColAt<180)return;swLeftColAt=now;
+  const hud=el('hud');if(!hud)return;
+  const hr=hud.getBoundingClientRect();if(!hr.height)return;
+  let y=hr.bottom+6;
+  for(const id of SW_LEFTCOL){
+    const n=el(id);if(!n)continue;
+    const cs=getComputedStyle(n);
+    const shown=cs.display!=='none'&&cs.visibility!=='hidden'&&+cs.opacity>.04;
+    const r=n.getBoundingClientRect();
+    // nur Elemente, die wirklich links unter dem Panel stehen
+    if(r.left>hr.right-20){if(n.dataset.swTop){n.style.removeProperty('top');n.style.removeProperty('bottom');delete n.dataset.swTop;}continue;}
+    if(!shown||!r.height)continue;
+    const t=Math.round(y)+'px';
+    if(n.dataset.swTop!==t){n.style.setProperty('top',t,'important');n.style.setProperty('bottom','auto','important');n.dataset.swTop=t;}
+    y+=r.height+6;
+  }
+}
 function updateHUD(){
   updateFlightPlanNavigation();
   const hudNode=el('hud');
@@ -110150,6 +110240,7 @@ function updateHUD(){
     el('coins').innerHTML='\u25c8 <span>'+SAVE.coins+'</span>';
   }
   hudOpacity(el('coins'),'_coins',(coinShow>0||curPane==='shop')?1:0);
+  swLayoutLeftColumn(false);
   const cb=el('combo');
   if(activeCourse){
     const key=activeCourse.n+':'+comboIdx;
@@ -110230,6 +110321,8 @@ function updateHUD(){
   d.classList.toggle('on',(pl.hp<(pl.hpMax||100)||sysWorst>.01)&&pl.alive);
   const readiness=Math.min(pl.hp/(pl.hpMax||100),1-sysWorst*.62);
   el('dmgFill').style.width=clamp(readiness*100,0,100)+'%';
+  hudSet('dmgPct',Math.round(clamp(readiness*100,0,100))+'%');
+  d.classList.toggle('low',readiness<.5);d.classList.toggle('critical',readiness<.25);
   const fu=el('fuel'),fuelPercent=clamp(pl.fuel*100,0,100);
   fu.classList.toggle('on',ST.running&&pl.alive);
   fu.classList.toggle('low',pl.fuel<.15);
